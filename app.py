@@ -155,7 +155,7 @@ with tab_scan:
         st.markdown(f"<div class='clinic-card'>{resultado}</div>", unsafe_allow_html=True)
         
         st.markdown("### Guia de Referência: Condição Corporal")
-        # CORREÇÃO AQUI: Mantida em linha única para evitar o SyntaxError
+        # CORREÇÃO AQUI: String em uma única linha para evitar o SyntaxError
         st.markdown("
 
 [Image of a Body Condition Score chart for dogs and cats]
