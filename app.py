@@ -155,11 +155,11 @@ with tab_scan:
         st.markdown(f"<div class='clinic-card'>{resultado}</div>", unsafe_allow_html=True)
         
         st.markdown("### Guia de Referência: Condição Corporal")
-        # CORREÇÃO AQUI: String em uma única linha para evitar o SyntaxError
-        st.markdown("
+        # CORREÇÃO AQUI: Uso de aspas triplas para permitir múltiplas linhas
+        st.markdown("""
 
 [Image of a Body Condition Score chart for dogs and cats]
-")
+""")
 
 # --- ABA 3: VETS ---
 with tab_vets:
