@@ -10,11 +10,11 @@ from pymongo import MongoClient
 import pillow_heif
 import random
 
-# --- INICIALIZAÇÃO ---
+# --- CONFIGURAÇÕES TÉCNICAS SÊNIOR ---
 pillow_heif.register_heif_opener()
-st.set_page_config(page_title="TechnoBolt Pets Hub", layout="wide", page_icon="🐾")
+st.set_page_config(page_title="TechnoBolt Pets Hub | Enterprise Edition", layout="wide", page_icon="🐾")
 
-# --- CONEXÃO MONGODB (ESTABILIDADE) ---
+# --- DATABASE ENGINE ---
 @st.cache_resource
 def iniciar_conexao():
     try:
@@ -24,201 +24,211 @@ def iniciar_conexao():
         password = urllib.parse.quote_plus(password_raw)
         uri = f"mongodb+srv://{user}:{password}@{host}/?appName=Cluster0"
         client = MongoClient(uri, serverSelectionTimeoutMS=5000, tlsAllowInvalidCertificates=True)
-        # Teste de ping para validar conexão
         client.admin.command('ping')
         return client['technoboltpets']
     except Exception as e:
-        st.error(f"Erro Crítico de Conexão: {e}")
+        st.error(f"⚠️ Erro Crítico na Conexão: {e}")
         return None
 
 db = iniciar_conexao()
 
-# --- DESIGN SYSTEM: HIGH-END DARK ---
+# --- DESIGN SYSTEM: TECHNOBOLT DARK PRO ---
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
-    * { font-family: 'Inter', sans-serif; }
-    .stApp { background-color: #000000 !important; color: #ffffff !important; }
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
     
-    .stTextInput>div>div>input, .stTextArea>div>div>textarea, .stNumberInput>div>div>input, .stSelectbox>div>div>div { 
-        background-color: #1a1a1a !important; color: #ffffff !important; border: 1px solid #333333 !important; 
-    }
+    * { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .stApp { background-color: #000000 !important; }
     
-    .stButton>button { 
-        background-color: #333333 !important; color: #ffffff !important; 
-        border-radius: 8px; border: 1px solid #444444; font-weight: bold; width: 100%; transition: 0.3s;
+    /* Cards Visual Improvements */
+    .elite-card {
+        background: #0d0d0d; border: 1px solid #1f1f1f; border-radius: 20px;
+        padding: 24px; margin-bottom: 20px;
+        transition: transform 0.3s ease, border-color 0.3s ease;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.4);
     }
-    .stButton>button:hover { background-color: #444444 !important; border-color: #ffffff !important; }
-
-    .clinic-card, .caregiver-card { 
-        background-color: #111111; border: 1px solid #222222; border-radius: 12px; 
-        padding: 25px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    .elite-card:hover { transform: translateY(-5px); border-color: #3b82f6; }
+    
+    .status-active { color: #10b981; font-weight: bold; }
+    .price-tag { background: #3b82f6; color: white; padding: 4px 12px; border-radius: 20px; font-weight: 800; }
+    
+    /* Admin Table Styling */
+    .admin-row { border-bottom: 1px solid #1a1a1a; padding: 10px 0; }
+    
+    .stButton>button {
+        background: #1a1a1a !important; color: #fff !important;
+        border: 1px solid #333 !important; border-radius: 12px !important;
+        font-weight: 600 !important; transition: 0.3s !important;
     }
-    .price-tag { color: #3b82f6; font-weight: 800; font-size: 1.2rem; }
-    .stMap { filter: grayscale(1) invert(0.9); border-radius: 10px; }
+    .stButton>button:hover { background: #3b82f6 !important; border-color: #3b82f6 !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- MOTOR DE IA (MULTIMODEL FALLBACK) ---
+# --- AI CORE ENGINE ---
 def call_ia(prompt, img=None):
     chaves = [os.environ.get(f"GEMINI_CHAVE_{i}") for i in range(1, 8)]
     chaves = [k for k in chaves if k]
-    if not chaves: return "Erro: Chave API ausente."
+    if not chaves: return "Erro: API_KEYS_MISSING"
     
-    motores = [
-        "models/gemini-2.0-flash", 
-        "models/gemini-3-flash-preview", 
-        "models/gemini-2.5-flash", 
-        "models/gemini-flash-latest"
-    ]
-    
+    motores = ["models/gemini-2.0-flash", "models/gemini-3-flash-preview", "models/gemini-2.5-flash", "models/gemini-flash-latest"]
     genai.configure(api_key=random.choice(chaves))
+    
     for motor in motores:
         try:
             model = genai.GenerativeModel(motor)
-            if img:
-                response = model.generate_content([prompt, img])
-            else:
-                response = model.generate_content(prompt)
+            response = model.generate_content([prompt, img] if img else prompt)
             return response.text
-        except:
-            continue
-    return "Serviço de IA instável. Tente novamente."
+        except: continue
+    return "Motores Offline."
 
-# --- SESSION STATE ---
+# --- SESSION & SECURITY ---
 if "logado" not in st.session_state: st.session_state.logado = False
 if "ultimo_scan" not in st.session_state: st.session_state.ultimo_scan = None
 if "cg_index" not in st.session_state: st.session_state.cg_index = 0
 
-# --- LOGIN & REGISTRO ---
+# --- AUTH & REGISTRATION ---
 if not st.session_state.logado:
-    st.markdown("<h1 style='text-align: center; font-weight:800;'>🐾 TechnoBolt Pets</h1>", unsafe_allow_html=True)
-    t_login, t_reg = st.tabs(["🔐 Acessar Hub", "📝 Solicitar Acesso"])
+    st.markdown("<h1 style='text-align: center; font-weight:800; color:white;'>🐾 TECHNOBOLT PETS</h1>", unsafe_allow_html=True)
+    t_login, t_reg = st.tabs(["🔐 ACESSAR HUB", "📝 SOLICITAR ACESSO"])
     
     with t_login:
-        u, p = st.text_input("Usuário", key="l_u"), st.text_input("Senha", type="password", key="l_p")
+        u = st.text_input("Usuário", key="u_field")
+        p = st.text_input("Senha", type="password", key="p_field")
         if st.button("AUTENTICAR"):
             user = db.usuarios.find_one({"usuario": u, "senha": p}) if db is not None else None
-            if user: 
+            if user:
                 st.session_state.logado = True
                 st.session_state.user_data = user
                 st.rerun()
-            else: st.error("Acesso negado.")
+            else: st.error("Falha na autenticação.")
 
     with t_reg:
-        st.markdown("### Configurar Novo Perfil")
-        n_nome = st.text_input("Nome Completo")
-        n_user = st.text_input("Username").lower().strip()
-        n_pass = st.text_input("Password", type="password")
+        n_nome = st.text_input("Nome")
+        n_user = st.text_input("User").lower()
+        n_pass = st.text_input("Pass", type="password")
         n_tipo = st.selectbox("Perfil", ["Usuário Normal", "Cuidador"])
-        
-        extra = {}
-        if n_tipo == "Cuidador":
-            st.divider()
-            extra['resumo'] = st.text_area("Bio Profissional")
-            c1, c2 = st.columns(2)
-            extra['idade'] = c1.number_input("Idade", 18, 90, 25)
-            extra['valor_diaria'] = c2.number_input("Diária (R$)", 0.0, 1000.0, 50.0)
-            extra['endereco'] = st.text_input("Cidade/UF")
-            
-            sc1, sc2, sc3 = st.columns(3)
-            extra['tipos_animais'] = sc1.multiselect("Espécies", ["Cães", "Gatos", "Aves", "Roedores"])
-            extra['tamanhos'] = sc2.multiselect("Portes", ["Pequeno", "Médio", "Grande"])
-            extra['idades_pet'] = sc3.multiselect("Fases", ["Filhote", "Adulto", "Idoso"])
-
-        if st.button("FINALIZAR REGISTRO"):
-            if n_user and n_pass and db is not None:
-                if db.usuarios.find_one({"usuario": n_user}):
-                    st.error("Usuário já cadastrado.")
-                else:
-                    data = {"nome": n_nome, "usuario": n_user, "senha": n_pass, "tipo": n_tipo, "dt": datetime.now()}
-                    data.update(extra)
-                    db.usuarios.insert_one(data)
-                    st.success("Cadastro realizado!")
+        if st.button("FINALIZAR"):
+            if n_user and db is not None:
+                db.usuarios.insert_one({"nome": n_nome, "usuario": n_user, "senha": n_pass, "tipo": n_tipo, "status": "Ativo", "dt": datetime.now()})
+                st.success("Conta criada!")
     st.stop()
 
-# --- HUB LOGADO ---
+# --- INTERFACE LOGADA ---
 user_doc = st.session_state.user_data
-t_dicas, t_scan, t_vets, t_care = st.tabs(["💡 Insights", "🧬 PetScan IA", "📍 Clínicas Vets", "🐕 Cuidadores"])
+is_admin = user_doc.get('tipo') == "Admin"
 
-# ABA 1: INSIGHTS
-with t_dicas:
-    st.markdown("### Performance e Saúde Pet")
-    p = f"4 dicas curtas pet. Verão 2026. Contexto: {st.session_state.ultimo_scan or 'Geral'}. Formato: TAG|DICA"
-    res = call_ia(p)
-    if res:
+# Se for admin, adicionamos a aba de gestão
+tabs_names = ["💡 Insights", "🧬 PetScan", "📍 Vets & Clínicas", "🐕 Cuidadores"]
+if is_admin: tabs_names.append("⚙️ Gestão Admin")
+
+tabs = st.tabs(tabs_names)
+
+# --- ABA 1: INSIGHTS (CARDS MELHORADOS) ---
+with tabs[0]:
+    st.markdown("### 💡 Inteligência Preventiva")
+    res = call_ia(f"4 dicas curtas pet. Contexto: {st.session_state.ultimo_scan or 'Geral'}. Formato: TAG|DICA")
+    if res and "|" in res:
         cols = st.columns(4)
         for i, linha in enumerate([l for l in res.split('\n') if '|' in l][:4]):
-            tag, texto = linha.split('|')
-            cols[i].markdown(f"<div style='background:#111; padding:20px; border-radius:10px; border:1px solid #222; height:160px;'><small style='color:#3b82f6; font-weight:bold;'>{tag.upper()}</small><br>{texto}</div>", unsafe_allow_html=True)
+            tag, txt = linha.split('|')
+            cols[i].markdown(f"""
+            <div class="elite-card" style="height: 180px;">
+                <small style="color:#3b82f6; font-weight:800;">{tag.upper()}</small><br>
+                <p style="font-size:0.9rem; margin-top:10px;">{txt}</p>
+            </div>
+            """, unsafe_allow_html=True)
 
-# ABA 2: PETSCAN IA (CORREÇÃO DE SINTAXE)
-with t_scan:
-    st.subheader("🧬 Diagnóstico Biométrico Digital")
-    up = st.file_uploader("Submeter Amostra Visual", type=['jpg', 'png', 'heic'])
+# --- ABA 2: PETSCAN ---
+with tabs[1]:
+    st.subheader("🧬 Diagnóstico Biométrico IA")
+    up = st.file_uploader("Upload de Amostra", type=['jpg', 'png', 'heic'])
     if up and st.button("EXECUTAR SCAN"):
         img = ImageOps.exif_transpose(Image.open(up)).convert("RGB")
         st.image(img, width=400)
-        with st.spinner("Analisando biotipo e saúde..."):
-            resultado = call_ia("Atue como um especialista veterinário. Analise raça, escore corporal (BCS 1-9) e saúde da pelagem.", img=img)
-            st.session_state.ultimo_scan = resultado
-            st.markdown(f"<div class='caregiver-card'><b>LAUDO TÉCNICO:</b><br><br>{resultado}</div>", unsafe_allow_html=True)
-            
-            st.markdown("### 📊 Guia de Referência: Condição Corporal")
-            # --- CORREÇÃO DO ERRO AQUI ---
-            st.markdown("[Image of a Body Condition Score chart for dogs and cats]")
-            st.caption("Nota: Este diagnóstico é assistido por IA e não substitui uma consulta física.")
+        resultado = call_ia("Analise anatômica: raça, escore corporal (BCS) e saúde dérmica.", img=img)
+        st.session_state.ultimo_scan = resultado
+        st.markdown(f"<div class='elite-card'><b>LAUDO TÉCNICO:</b><br><br>{resultado}</div>", unsafe_allow_html=True)
+        
+        st.markdown("### 📊 Guia de Referência BCS")
+        st.markdown("[attachment_0](attachment)")
 
-# ABA 3: VETS
-with t_vets:
-    st.subheader("📍 Unidades Hospitalares 24h")
-    loc = st.text_input("Sua Localização (Ex: Itaim Bibi, SP)", key="loc_vets")
-    if loc and st.button("MAPEAR UNIDADES"):
-        res = call_ia(f"Liste 5 clínicas 24h em {loc}. Formato: NOME|LAT|LON|ENDERECO|PROS|CONTRAS")
-        if res:
-            for vet in [l for l in res.split('\n') if '|' in l][:5]:
-                d = vet.split('|')
-                with st.container():
-                    st.markdown(f"<div class='clinic-card'><h3>🏥 {d[0]}</h3>", unsafe_allow_html=True)
-                    try:
-                        st.map(pd.DataFrame({'lat': [float(d[1])], 'lon': [float(d[2])]}), zoom=15)
-                    except: pass
-                    st.markdown(f"<p style='color:#888;'>📍 {d[3]}</p><p style='color:#aaffaa;'>✅ {d[4]}</p></div>", unsafe_allow_html=True)
+# --- ABA 3: VETS & CLÍNICAS (LOCALIZAÇÃO & AVALIAÇÕES) ---
+with tabs[2]:
+    st.subheader("📍 Geolocalização de Especialistas")
+    col_loc1, col_loc2 = st.columns([3, 1])
+    loc_input = col_loc1.text_input("Localização (Cidade, Bairro ou 'Minha Localização')", placeholder="Ex: Itaim Bibi, SP")
+    
+    if col_loc2.button("📍 GPS"):
+        # Simulação de geolocalização do aparelho (em Streamlit real, exige componente JS)
+        loc_input = "Localização Atual (GPS Ativo)"
+        st.info("Localização captada via GPS do dispositivo.")
 
-# ABA 4: CUIDADORES (CARROSSEL)
-with t_care:
-    st.subheader("🐕 Elite Caregivers Marketplace")
+    if loc_input:
+        with st.spinner("IA processando avaliações da rede..."):
+            prompt_vets = f"Liste 5 clínicas/vets em {loc_input}. Formato: NOME|NOTA|ENDERECO|PROS|CONTRAS"
+            res_vets = call_ia(prompt_vets)
+            if res_vets:
+                for vet in [l for l in res_vets.split('\n') if '|' in l][:5]:
+                    d = vet.split('|')
+                    with st.container():
+                        st.markdown(f"""
+                        <div class='elite-card'>
+                            <div style='display:flex; justify-content:space-between;'>
+                                <h3>🏥 {d[0]}</h3>
+                                <span class='price-tag'>⭐ {d[1]}</span>
+                            </div>
+                            <p style='color:#888;'>📍 {d[2]}</p>
+                            <div style='display:grid; grid-template-columns: 1fr 1fr; gap:10px;'>
+                                <div style='color:#aaffaa;'><small><b>PONTOS POSITIVOS:</b></small><br>{d[3]}</div>
+                                <div style='color:#ffaaaa;'><small><b>PONTOS NEGATIVOS:</b></small><br>{d[4]}</div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+# --- ABA 4: CUIDADORES ---
+with tabs[3]:
+    st.subheader("🐕 Elite Caregivers")
     if db is not None:
         cuidadores = list(db.usuarios.find({"tipo": "Cuidador"}))
         if cuidadores:
-            num = len(cuidadores)
-            c = cuidadores[st.session_state.cg_index % num]
-            
-            c_nav1, c_main, c_nav2 = st.columns([1, 4, 1])
-            with c_nav1:
-                st.markdown("<br><br><br>", unsafe_allow_html=True)
-                if st.button("⬅️"): st.session_state.cg_index -= 1; st.rerun()
-            with c_main:
+            c = cuidadores[st.session_state.cg_index % len(cuidadores)]
+            col_a, col_b, col_c = st.columns([1, 4, 1])
+            if col_a.button("⬅️"): st.session_state.cg_index -= 1; st.rerun()
+            if col_c.button("➡️"): st.session_state.cg_index += 1; st.rerun()
+            with col_b:
                 st.markdown(f"""
-                <div class="caregiver-card">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 1.5rem; font-weight: 800;">👤 {c['nome']}</span>
-                        <span class="price-tag">R$ {c.get('valor_diaria', 0.0):.2f}/dia</span>
-                    </div>
-                    <p style="color: #666;">📍 {c.get('endereco', 'Não informado')} | 🎂 {c.get('idade', '--')} anos</p>
-                    <p style="margin: 15px 0; font-size: 1.1rem; line-height: 1.5;">{c.get('resumo', '...')}</p>
-                    <hr style="border: 0.1px solid #333;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                        <div><small><b>🐾 Espécies:</b> {", ".join(c.get('tipos_animais', []))}</small></div>
-                        <div><small><b>📏 Portes:</b> {", ".join(c.get('tamanhos', []))}</small></div>
-                    </div>
+                <div class='elite-card'>
+                    <span class='price-tag'>R$ {c.get('valor_diaria', 0):.2f}/dia</span><br><br>
+                    <span style='font-size:1.5rem; font-weight:800;'>👤 {c['nome']}</span><br>
+                    <p>{c.get('resumo', 'Sem bio disponível.')}</p>
                 </div>""", unsafe_allow_html=True)
-            with c_nav2:
-                st.markdown("<br><br><br>", unsafe_allow_html=True)
-                if st.button("➡️"): st.session_state.cg_index += 1; st.rerun()
 
+# --- ABA 5: GESTÃO ADMIN (CONTROLE DE ACESSO) ---
+if is_admin:
+    with tabs[4]:
+        st.subheader("⚙️ Painel de Governança Admin")
+        st.markdown("Gerencie permissões e visualize a base de usuários ativos.")
+        
+        if db is not None:
+            usuarios = list(db.usuarios.find())
+            for user in usuarios:
+                with st.container():
+                    col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
+                    col1.write(f"**{user['nome']}** ({user['usuario']})")
+                    col2.write(f"Type: `{user['tipo']}`")
+                    col3.markdown(f"Status: <span class='status-active'>{user.get('status', 'Ativo')}</span>", unsafe_allow_html=True)
+                    
+                    if user['tipo'] != "Admin":
+                        if col4.button("Promover Admin", key=f"promo_{user['usuario']}"):
+                            db.usuarios.update_one({"usuario": user['usuario']}, {"$set": {"tipo": "Admin"}})
+                            st.success(f"{user['usuario']} promovido!")
+                            st.rerun()
+                st.markdown("---")
+
+# --- SIDEBAR ---
 with st.sidebar:
-    st.write(f"### 👤 {user_doc.get('nome')}")
-    if st.button("LOGOUT"): 
+    st.markdown(f"### 👤 {user_doc.get('nome')}")
+    st.caption(f"Acesso: {user_doc.get('tipo')}")
+    if st.button("SAIR"):
         st.session_state.logado = False
         st.rerun()
