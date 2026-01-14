@@ -3,18 +3,18 @@ import google.generativeai as genai
 from PIL import Image, ImageOps
 import io
 import os
-import re
 import pandas as pd
 import urllib.parse
 from datetime import datetime
-from fpdf import FPDF
 from pymongo import MongoClient
 import pillow_heif
+import random
 
 # --- INICIALIZAÇÃO ---
 pillow_heif.register_heif_opener()
 st.set_page_config(page_title="TechnoBolt Pets Hub", layout="wide", page_icon="🐾")
 
+# --- CONEXÃO MONGODB ---
 @st.cache_resource
 def iniciar_conexao():
     try:
@@ -26,84 +26,148 @@ def iniciar_conexao():
         client = MongoClient(uri, serverSelectionTimeoutMS=5000, tlsAllowInvalidCertificates=True)
         return client['technoboltpets']
     except Exception as e:
-        st.error(f"Erro de conexão: {e}")
+        st.error(f"Erro no Banco de Dados: {e}")
         return None
 
 db = iniciar_conexao()
 
-# --- DESIGN SYSTEM TECHNOBOLT ---
+# --- DESIGN SYSTEM: BLACK, WHITE & GRAY ---
 st.markdown("""
 <style>
     .stApp { background-color: #000000 !important; color: #ffffff !important; }
-    .clinic-title { color: #3b82f6; font-size: 1.5rem; font-weight: bold; margin-bottom: 5px; }
-    .clinic-address { color: #888; font-size: 0.9rem; margin-top: 5px; margin-bottom: 20px; }
-    .result-card-unificado { 
-        background-color: #0d0d0d !important; border-left: 5px solid #3b82f6;
-        border-radius: 12px; padding: 25px; border: 1px solid #1a1a1a;
+    h1, h2, h3, p, span, label { color: #ffffff !important; }
+
+    .stTextInput>div>div>input, .stSelectbox>div>div>div {
+        background-color: #333333 !important; color: #ffffff !important; border: 1px solid #555555 !important;
     }
-    .stButton>button { background-color: #3b82f6 !important; color: white !important; font-weight: bold; }
+    
+    .stButton>button {
+        background-color: #555555 !important; color: #ffffff !important; 
+        border-radius: 8px; border: 1px solid #777777; font-weight: bold; width: 100%;
+    }
+    .stButton>button:hover { background-color: #777777 !important; border-color: #ffffff !important; }
+
+    .tip-card, .clinic-card {
+        background-color: #1a1a1a; border: 1px solid #333333;
+        border-radius: 12px; padding: 20px; margin-bottom: 15px;
+    }
+    .tip-tag { color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; }
+    
+    .pros { color: #aaffaa; font-size: 0.85rem; }
+    .contras { color: #ffaaaa; font-size: 0.85rem; }
 </style>
 """, unsafe_allow_html=True)
 
 # --- MOTOR DE IA ---
-def realizar_scan_ia(prompt, img_pil=None):
+def call_ia(prompt, model_name="models/gemini-2.0-flash", img=None):
     chaves = [os.environ.get(f"GEMINI_CHAVE_{i}") for i in range(1, 8)]
     chaves = [k for k in chaves if k]
-    motores = ["models/gemini-3-flash-preview", "models/gemini-2.5-flash", "models/gemini-2.0-flash", "models/gemini-flash-latest"]
-    for key in chaves:
+    if not chaves: return "Erro: Chave API não configurada."
+    
+    genai.configure(api_key=random.choice(chaves))
+    
+    # Rotação automática de modelos caso o principal falhe
+    motores = [model_name, "models/gemini-2.0-flash", "models/gemini-1.5-flash"]
+    
+    for motor in motores:
         try:
-            genai.configure(api_key=key)
-            for m in motores:
-                try:
-                    model = genai.GenerativeModel(m)
-                    cont = [prompt, img_pil] if img_pil else [prompt]
-                    response = model.generate_content(cont)
-                    if response.text: return response.text, m
-                except: continue
-        except: continue
-    return None, "OFFLINE"
+            model = genai.GenerativeModel(motor)
+            if img:
+                img_byte_arr = io.BytesIO()
+                img.save(img_byte_arr, format='JPEG')
+                blob = {"mime_type": "image/jpeg", "data": img_byte_arr.getvalue()}
+                response = model.generate_content([prompt, blob])
+            else:
+                response = model.generate_content(prompt)
+            return response.text
+        except:
+            continue
+    return "Serviço de IA temporariamente indisponível."
 
-# --- INTERFACE DE LOGIN (SIMPLIFICADA PARA O EXEMPLO) ---
+# --- LOGIN ---
 if "logado" not in st.session_state: st.session_state.logado = False
+if "ultimo_scan" not in st.session_state: st.session_state.ultimo_scan = None
+
 if not st.session_state.logado:
-    st.title("🐾 TechnoBolt Pets Hub")
-    if st.button("ENTRAR (DEMO)"): st.session_state.logado = True; st.session_state.user_atual = "admin"; st.rerun()
+    st.markdown("<h1 style='text-align: center;'>🐾 TechnoBolt Pets</h1>", unsafe_allow_html=True)
+    u = st.text_input("Usuário")
+    p = st.text_input("Senha", type="password")
+    if st.button("ACESSAR HUB"):
+        user = db.usuarios.find_one({"usuario": u, "senha": p}) if db else None
+        if user:
+            st.session_state.logado = True
+            st.session_state.user_data = user
+            st.rerun()
     st.stop()
 
-# --- DASHBOARD ---
-user_doc = db.usuarios.find_one({"usuario": st.session_state.user_atual})
-tab1, tab2, tab3 = st.tabs(["🧬 PetScan IA", "📍 Vets & Clínicas", "🐕 Marketplace"])
+user_doc = st.session_state.user_data
+tab_dicas, tab_scan, tab_vets = st.tabs(["💡 Insights", "🧬 PetScan", "📍 Localizar Vets"])
 
-with tab2:
-    st.subheader("📍 Geolocalização Inteligente: Top 5 Clínicas")
+# --- ABA 1: DICAS ---
+with tab_dicas:
+    st.markdown("### Dicas de Performance Pet")
+    clima = "Janeiro 2026 (Verão)"
+    contexto = st.session_state.ultimo_scan if st.session_state.ultimo_scan else "Geral"
     
-    # Dados das 5 principais clínicas de São Paulo (Exemplo Real)
-    clinicas = [
-        {"nome": "Veros Hospital Veterinário 24h", "lat": -23.5819, "lon": -46.6661, "end": "Av. Brigadeiro Luís Antônio, 4643 - Jardim Paulista", "url": "https://veros.vet/"},
-        {"nome": "WeVets Hospital Veterinário - Pompéia", "lat": -23.5302, "lon": -46.6848, "end": "Av. Pompéia, 633 - Pompeia", "url": "https://wevets.com.br/"},
-        {"nome": "Hospital Veterinário Medeiros 24h", "lat": -23.5313, "lon": -46.7001, "end": "Rua Catão, 1157 Vila Romana - Lapa", "url": "https://hvmedeiros.com.br/"},
-        {"nome": "SaveVet Centro Veterinário 24h", "lat": -23.4926, "lon": -46.6178, "end": "Av. Leôncio de Magalhães, 1005 - Jd. São Paulo", "url": "http://www.savevet.com.br/"},
-        {"nome": "Provet Diagnóstico - Unidade Aratãs", "lat": -23.6111, "lon": -46.6509, "end": "Av. Indianópolis, 1465 - Indianópolis", "url": "http://www.provet.com.br/"}
-    ]
+    res_dicas = call_ia(f"4 dicas curtas para pet. Contexto: {clima}, Pet: {contexto}. Formato: TAG|DICA", model_name="models/gemini-flash-latest")
+    
+    cols = st.columns(4)
+    if res_dicas:
+        linhas = [l for l in res_dicas.split('\n') if '|' in l][:4]
+        for i, linha in enumerate(linhas):
+            tag, texto = linha.split('|')
+            cols[i].markdown(f"<div class='tip-card'><span class='tip-tag'>{tag}</span><br>{texto}</div>", unsafe_allow_html=True)
 
-    for clinica in clinicas:
-        st.markdown(f'<div class="clinic-title">{clinica["nome"]}</div>', unsafe_allow_html=True)
-        
-        # Mapa em Miniatura
-        map_data = pd.DataFrame({'lat': [clinica['lat']], 'lon': [clinica['lon']]})
-        st.map(map_data, zoom=14, use_container_width=True)
-        
-        # Endereço e Link
-        st.markdown(f'<div class="clinic-address">📍 {clinica["end"]}</div>', unsafe_allow_html=True)
-        st.link_button("Ver no Google Maps", clinica['url'])
-        st.divider()
+# --- ABA 2: SCAN (COM CORREÇÃO DE SINTAXE) ---
+with tab_scan:
+    st.subheader("🧬 Diagnóstico Biométrico")
+    up = st.file_uploader("Foto do pet", type=['jpg', 'png', 'heic'])
+    if up and st.button("EXECUTAR SCAN"):
+        img = ImageOps.exif_transpose(Image.open(up)).convert("RGB")
+        st.image(img, width=300)
+        # Corrigido: Passando apenas um modelo por vez
+        resultado = call_ia("Analise raça, score corporal e pelagem.", model_name="models/gemini-2.0-flash", img=img)
+        st.session_state.ultimo_scan = resultado
+        st.markdown(f"<div class='clinic-card'>{resultado}</div>", unsafe_allow_html=True)
 
-    if st.button("🪄 IA: ANALISAR REPUTAÇÃO DESTAS CLÍNICAS"):
-        prompt_reputacao = f"Analise as clínicas: {[c['nome'] for l in clinicas]}. Resuma o diferencial tecnológico de cada uma em 2 linhas."
-        res, _ = realizar_scan_ia(prompt_reputacao)
-        st.info(res)
+# --- ABA 3: VETS (LOCALIZAÇÃO DINÂMICA) ---
+with tab_vets:
+    st.subheader("📍 Encontrar Melhores Clínicas")
+    
+    # Campo de localização em cinza
+    loc_user = st.text_input("Digite sua cidade ou bairro (ex: Pompéia, SP)", key="loc_user")
+    
+    if st.button("BUSCAR 5 MELHORES CLÍNICAS"):
+        if loc_user:
+            with st.spinner(f"Analisando clínicas em {loc_user}..."):
+                # IA simula a busca baseada em dados reais de treino e fornece Prós/Contras
+                prompt_vets = f"""
+                Liste as 5 melhores clínicas veterinárias em {loc_user}. 
+                Para cada uma, retorne exatamente neste formato:
+                NOME_CLINICA|ENDERECO|PRÓS (em uma frase)|CONTRAS (em uma frase)
+                Use apenas informações reais conhecidas.
+                """
+                res_vets = call_ia(prompt_vets)
+                
+                if res_vets:
+                    linhas_vets = [l for l in res_vets.split('\n') if '|' in l][:5]
+                    for vet in linhas_vets:
+                        dados = vet.split('|')
+                        if len(dados) >= 4:
+                            with st.container():
+                                st.markdown(f"""
+                                <div class="clinic-card">
+                                    <h3 style='margin-top:0;'>🏥 {dados[0]}</h3>
+                                    <p style='font-size:0.8rem; color:#888;'>📍 {dados[1]}</p>
+                                    <p class="pros"><b>✅ Prós:</b> {dados[2]}</p>
+                                    <p class="contras"><b>❌ Contras:</b> {dados[3]}</p>
+                                </div>
+                                """, unsafe_allow_html=True)
+        else:
+            st.warning("Por favor, digite uma localização.")
 
-with tab1: st.write("Módulo PetScan ativo.")
-with tab3: st.write("Módulo Marketplace ativo.")
-
-st.caption("TechnoBolt Pets v2.0 | IA & Geolocalização")
+with st.sidebar:
+    st.write(f"**Tutor:** {user_doc['nome']}")
+    if st.button("LOGOUT"):
+        st.session_state.logado = False
+        st.rerun()
