@@ -1,0 +1,8 @@
+streamlit
+google-generativeai
+Pillow
+pandas
+fpdf
+pymongo[srv]
+pillow-heif
+dnspython
