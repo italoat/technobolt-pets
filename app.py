@@ -69,6 +69,7 @@ def call_ia(prompt, model_name="models/gemini-2.0-flash", img=None):
 # --- LOGIN E SOLICITAÇÃO DE ACESSO ---
 if "logado" not in st.session_state: st.session_state.logado = False
 if "ultimo_scan" not in st.session_state: st.session_state.ultimo_scan = None
+if "cg_index" not in st.session_state: st.session_state.cg_index = 0
 
 if not st.session_state.logado:
     st.markdown("<h1 style='text-align: center;'>🐾 TechnoBolt Pets</h1>", unsafe_allow_html=True)
@@ -123,7 +124,6 @@ if not st.session_state.logado:
 
 # --- INTERFACE LOGADA ---
 user_doc = st.session_state.user_data
-# Nova Tab de Cuidadores incluída
 tab_dicas, tab_scan, tab_vets, tab_cuidadores = st.tabs(["💡 Insights", "🧬 PetScan", "📍 Localizar Vets", "🐕 Cuidadores"])
 
 # --- ABA 1: DICAS ---
@@ -149,7 +149,7 @@ with tab_scan:
         st.markdown(f"<div class='clinic-card'>{resultado}</div>", unsafe_allow_html=True)
         
 
-[Image of a body condition score chart for dogs and cats]
+[Image of a Body Condition Score chart for pets]
 
 
 # --- ABA 3: VETS ---
@@ -171,32 +171,55 @@ with tab_vets:
                             except: pass
                             st.markdown(f"<p style='color:#888; margin-top:10px;'>📍 {d[3]}</p><p class='pros'>✅ {d[4]}</p><p class='contras'>❌ {d[5]}</p></div>", unsafe_allow_html=True)
 
-# --- ABA 4: CUIDADORES (NOVA) ---
+# --- ABA 4: CUIDADORES (CARROSSEL) ---
 with tab_cuidadores:
     st.subheader("🐕 Cuidadores de Animais Parceiros")
-    st.markdown("Encontre cuidadores verificados na nossa rede.")
     
     if db:
         cuidadores = list(db.usuarios.find({"tipo": "Cuidador"}))
         if not cuidadores:
             st.info("Ainda não temos cuidadores cadastrados nesta região.")
         else:
-            cols_c = st.columns(2)
-            for idx, c in enumerate(cuidadores):
-                with cols_c[idx % 2]:
-                    st.markdown(f"""
-                    <div class="caregiver-card">
-                        <div style="display: flex; justify-content: space-between;">
-                            <span style="font-size: 1.3rem; font-weight: bold;">👤 {c['nome']}</span>
-                            <span class="price-tag">R$ {c.get('valor_diaria', 0.0):.2f}/dia</span>
-                        </div>
-                        <p style="color: #888; font-size: 0.9rem;">📍 {c.get('endereco', 'Não informado')} | 🎂 {c.get('idade', '--')} anos</p>
-                        <p style="margin: 10px 0;">{c.get('resumo', 'Sem resumo disponível.')}</p>
-                        <hr style="border: 0.1px solid #333;">
-                        <small><b>Aceita:</b> {", ".join(c.get('tipos_animais', []))}</small><br>
-                        <small><b>Porte:</b> {", ".join(c.get('tamanhos', []))} | <b>Idade:</b> {", ".join(c.get('idades_pet', []))}</small>
+            # Lógica do Carrossel (Navegação por index)
+            num_cuidadores = len(cuidadores)
+            if st.session_state.cg_index >= num_cuidadores:
+                st.session_state.cg_index = 0
+                
+            c = cuidadores[st.session_state.cg_index]
+            
+            # Navegação do Carrossel
+            col_nav_prev, col_info, col_nav_next = st.columns([1, 4, 1])
+            
+            with col_nav_prev:
+                st.markdown("<br><br><br>", unsafe_allow_html=True)
+                if st.button("⬅️"):
+                    st.session_state.cg_index = (st.session_state.cg_index - 1) % num_cuidadores
+                    st.rerun()
+            
+            with col_info:
+                st.markdown(f"""
+                <div class="caregiver-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 1.5rem; font-weight: bold;">👤 {c['nome']}</span>
+                        <span class="price-tag">R$ {c.get('valor_diaria', 0.0):.2f}/dia</span>
                     </div>
-                    """, unsafe_allow_html=True)
+                    <p style="color: #888; font-size: 0.95rem;">📍 {c.get('endereco', 'Não informado')} | 🎂 {c.get('idade', '--')} anos</p>
+                    <p style="margin: 15px 0; font-size: 1.1rem; line-height: 1.5;">{c.get('resumo', 'Sem resumo disponível.')}</p>
+                    <hr style="border: 0.1px solid #333; margin: 20px 0;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div><small><b>🐾 Animais:</b><br>{", ".join(c.get('tipos_animais', []))}</small></div>
+                        <div><small><b>📏 Porte:</b><br>{", ".join(c.get('tamanhos', []))}</small></div>
+                        <div><small><b>🦴 Idade Aceita:</b><br>{", ".join(c.get('idades_pet', []))}</small></div>
+                        <div style="text-align: right;"><small><i>{st.session_state.cg_index + 1} de {num_cuidadores}</i></small></div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with col_nav_next:
+                st.markdown("<br><br><br>", unsafe_allow_html=True)
+                if st.button("➡️"):
+                    st.session_state.cg_index = (st.session_state.cg_index + 1) % num_cuidadores
+                    st.rerun()
 
 with st.sidebar:
     st.write(f"**Perfil:** {user_doc.get('nome', 'User')}")
