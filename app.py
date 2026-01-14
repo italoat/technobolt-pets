@@ -148,9 +148,8 @@ with tab_scan:
         st.session_state.ultimo_scan = resultado
         st.markdown(f"<div class='clinic-card'>{resultado}</div>", unsafe_allow_html=True)
         
-
-[Image of a Body Condition Score chart for pets]
-
+        # Correção aqui: Transformado em comando Streamlit válido
+        st.markdown("")
 
 # --- ABA 3: VETS ---
 with tab_vets:
@@ -174,28 +173,21 @@ with tab_vets:
 # --- ABA 4: CUIDADORES (CARROSSEL) ---
 with tab_cuidadores:
     st.subheader("🐕 Cuidadores de Animais Parceiros")
-    
     if db:
         cuidadores = list(db.usuarios.find({"tipo": "Cuidador"}))
         if not cuidadores:
             st.info("Ainda não temos cuidadores cadastrados nesta região.")
         else:
-            # Lógica do Carrossel (Navegação por index)
             num_cuidadores = len(cuidadores)
-            if st.session_state.cg_index >= num_cuidadores:
-                st.session_state.cg_index = 0
-                
+            if st.session_state.cg_index >= num_cuidadores: st.session_state.cg_index = 0
             c = cuidadores[st.session_state.cg_index]
             
-            # Navegação do Carrossel
             col_nav_prev, col_info, col_nav_next = st.columns([1, 4, 1])
-            
             with col_nav_prev:
                 st.markdown("<br><br><br>", unsafe_allow_html=True)
                 if st.button("⬅️"):
                     st.session_state.cg_index = (st.session_state.cg_index - 1) % num_cuidadores
                     st.rerun()
-            
             with col_info:
                 st.markdown(f"""
                 <div class="caregiver-card">
@@ -214,7 +206,6 @@ with tab_cuidadores:
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-
             with col_nav_next:
                 st.markdown("<br><br><br>", unsafe_allow_html=True)
                 if st.button("➡️"):
