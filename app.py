@@ -51,14 +51,18 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- MOTOR DE IA (MOTORES RECUPERADOS) ---
+# --- MOTOR DE IA (MOTORES SOLICITADOS) ---
 def call_ia(prompt, img=None):
     chaves = [os.environ.get(f"GEMINI_CHAVE_{i}") for i in range(1, 8)]
     chaves = [k for k in chaves if k]
     if not chaves: return "Erro: API Key"
     
-    # Seus motores solicitados
-    motores = ["models/gemini-3-flash-preview", "models/gemini-2.5-flash", "models/gemini-2.0-flash", "models/gemini-flash-latest"]
+    motores = [
+        "models/gemini-3-flash-preview", 
+        "models/gemini-2.5-flash", 
+        "models/gemini-2.0-flash", 
+        "models/gemini-flash-latest"
+    ]
     
     genai.configure(api_key=random.choice(chaves))
     
@@ -151,10 +155,11 @@ with tab_scan:
         st.markdown(f"<div class='clinic-card'>{resultado}</div>", unsafe_allow_html=True)
         
         st.markdown("### Guia de Referência: Condição Corporal")
-        
+        # CORREÇÃO DO ERRO DE SINTAXE AQUI:
+        st.markdown("
 
 [Image of a Body Condition Score chart for dogs and cats]
-
+")
 
 # --- ABA 3: VETS ---
 with tab_vets:
