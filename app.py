@@ -13,12 +13,14 @@ import pillow_heif
 import random
 
 # --- INICIALIZAÇÃO DE SUPORTE HEIC ---
+# Permite o processamento de fotos de iPhone diretamente no sistema
 pillow_heif.register_heif_opener()
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="TechnoBolt Pets Hub", layout="wide", page_icon="🐾")
 
-# --- CONEXÃO MONGODB (CONFIGURAÇÃO SOLICITADA) ---
+# --- CONEXÃO MONGODB ---
+# Utiliza as variáveis de ambiente configuradas no Render para segurança
 @st.cache_resource
 def iniciar_conexao():
     try:
@@ -29,14 +31,15 @@ def iniciar_conexao():
         uri = f"mongodb+srv://{user}:{password}@{host}/?appName=Cluster0"
         client = MongoClient(uri, serverSelectionTimeoutMS=5000, tlsAllowInvalidCertificates=True)
         client.admin.command('ping')
-        return client['technoboltpets'] # Database específico para Pets
+        return client['technoboltpets'] 
     except Exception as e:
         st.error(f"Erro de conexão com o Banco de Dados: {e}")
         return None
 
 db = iniciar_conexao()
 
-# --- DESIGN SYSTEM TECHNOBOLT ---
+# --- DESIGN SYSTEM ---
+# Estética Dark Mode com acentos em azul para o padrão TechnoBolt
 st.markdown("""
 <style>
     .stApp { background-color: #000000 !important; color: #ffffff !important; }
@@ -53,24 +56,38 @@ st.markdown("""
         background: rgba(59, 130, 246, 0.05); border: 1px solid #3b82f6;
         border-radius: 15px; padding: 20px; height: 180px; transition: 0.3s;
     }
-    .tip-card:hover { border-style: dashed; transform: scale(1.02); }
-    .tip-tag { color: #3b82f6; font-weight: bold; font-size: 0.9rem; margin-bottom: 8px; display: block; }
+    .tip-tag { color: #3b82f6; font-weight: bold; font-size: 0.8rem; text-transform: uppercase; }
     
     .result-card-unificado { 
         background-color: #0d0d0d !important; border-left: 5px solid #3b82f6;
         border-radius: 12px; padding: 25px; margin-top: 15px; border: 1px solid #1a1a1a;
-        line-height: 1.7; color: #e0e0e0; font-family: 'Inter', sans-serif;
+        line-height: 1.7; color: #e0e0e0;
     }
     .result-card-unificado b { color: #3b82f6; }
     .stButton>button { width: 100%; border-radius: 8px; font-weight: bold; background-color: #3b82f6 !important; color: white !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- MOTOR DE IA (RODÍZIO E MOTORES SOLICITADOS) ---
-def realizar_scan_pets(prompt_mestre, img_pil=None):
+# --- UTILITÁRIOS PDF ---
+class TechnoBoltPDF(FPDF):
+    def header(self):
+        self.set_fill_color(10, 10, 10); self.rect(0, 0, 210, 40, 'F')
+        self.set_xy(15, 12); self.set_font("Helvetica", "B", 24); self.set_text_color(59, 130, 246)
+        self.cell(0, 10, "TECHNOBOLT PETS", ln=True)
+        self.ln(20)
+
+def gerar_pdf(nome, conteudo, data):
+    pdf = TechnoBoltPDF()
+    pdf.add_page()
+    pdf.set_font("Helvetica", "", 12)
+    pdf.multi_cell(0, 10, conteudo.encode('latin-1', 'replace').decode('latin-1'))
+    return bytes(pdf.output(dest='S'))
+
+# --- MOTOR DE IA (MOTORES SOLICITADOS) ---
+# Implementação do rodízio de chaves e motores de última geração
+def realizar_scan_ia(prompt, img_pil=None):
     chaves = [os.environ.get(f"GEMINI_CHAVE_{i}") for i in range(1, 8)]
     chaves = [k for k in chaves if k]
-    # Motores solicitados:
     motores = ["models/gemini-3-flash-preview", "models/gemini-2.5-flash", "models/gemini-2.0-flash", "models/gemini-flash-latest"]
     
     img_blob = None
@@ -85,138 +102,103 @@ def realizar_scan_pets(prompt_mestre, img_pil=None):
             for m in motores:
                 try:
                     model = genai.GenerativeModel(m)
-                    conteudo = [prompt_mestre, img_blob] if img_blob else [prompt_mestre]
-                    response = model.generate_content(conteudo)
-                    if response and response.text:
-                        return response.text, f"{m.upper()}"
+                    cont = [prompt, img_blob] if img_blob else [prompt]
+                    response = model.generate_content(cont)
+                    if response.text: return response.text, m
                 except: continue
         except: continue
     return None, "OFFLINE"
 
-# --- LOGIN / TELA INICIAL COM 4 CARDS ---
+# --- LOGIN / TELA INICIAL ---
 if "logado" not in st.session_state: st.session_state.logado = False
 
 if not st.session_state.logado:
     st.markdown("""
     <div class="welcome-card">
         <div class="welcome-title">🐾 TechnoBolt Pets Hub</div>
-        <div class="welcome-subtitle">Alta tecnologia aplicada à saúde e bem-estar animal.</div>
+        <div class="welcome-subtitle">IA de Elite para a Longevidade do seu Melhor Amigo</div>
     </div>
     """, unsafe_allow_html=True)
 
-    # Dicas Dinâmicas via IA (Usando motor com mais cotas para a home)
-    with st.spinner("Carregando insights do dia..."):
-        dica_prompt = "Gere 4 dicas ultra-curtas para donos de cães e gatos (Saúde, Treino, Nutrição, Curiosidade). Formato: TAG|TITULO|DESCRICAO. Sem saudações."
-        res_dicas, _ = realizar_scan_pets(dica_prompt)
-        
-        cols = st.columns(4)
-        if res_dicas:
-            linhas = [l for l in res_dicas.split('\n') if '|' in l][:4]
-            for i, linha in enumerate(linhas):
-                partes = linha.split('|')
-                if len(partes) >= 3:
-                    cols[i].markdown(f"""
-                    <div class="tip-card">
-                        <span class="tip-tag">{partes[0]}</span>
-                        <b>{partes[1]}</b><br>
-                        <small>{partes[2]}</small>
-                    </div>
-                    """, unsafe_allow_html=True)
+    # 4 Cards Gratuitos de Dicas (Sempre mudam via IA)
+    dica_prompt = "Gere 4 dicas curtas para tutores de pets: TAG|TITULO|DICA. Uma por linha."
+    res_dicas, _ = realizar_scan_ia(dica_prompt)
+    cols = st.columns(4)
+    if res_dicas:
+        linhas = [l for l in res_dicas.split('\n') if '|' in l][:4]
+        for i, linha in enumerate(linhas):
+            p = linha.split('|')
+            if len(p) >= 3:
+                cols[i].markdown(f'<div class="tip-card"><span class="tip-tag">{p[0]}</span><br><b>{p[1]}</b><br><small>{p[2]}</small></div>', unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    t1, t2 = st.tabs(["🔐 Acesso Tutor/Partner", "📝 Novo Cadastro"])
-    
+    t1, t2 = st.tabs(["🔐 Acesso ao Hub", "📝 Novo Cadastro"])
     with t1:
         u_log = st.text_input("Usuário").lower().strip()
         p_log = st.text_input("Senha", type="password")
-        if st.button("ENTRAR NO HUB"):
+        if st.button("AUTENTICAR"):
             udata = db.usuarios.find_one({"usuario": u_log, "senha": p_log})
             if udata:
-                st.session_state.logado = True
-                st.session_state.user_atual = u_log
-                st.session_state.is_admin = udata.get('is_admin', False)
-                st.rerun()
+                st.session_state.logado = True; st.session_state.user_atual = u_log; st.rerun()
             else: st.error("Acesso negado.")
-            
     with t2:
-        u_reg = st.text_input("Login Desejado").lower().strip()
-        p_reg = st.text_input("Senha Cadastro", type="password")
-        tipo = st.selectbox("Tipo de Conta", ["Pet Lite", "Pet PRO", "Partner (Vet/Walker)"])
-        if st.button("CRIAR CONTA"):
-            db.usuarios.insert_one({"usuario": u_reg, "senha": p_reg, "tipo": tipo, "status": "ativo", "avaliacoes_restantes": 3 if "PRO" in tipo else 0, "historico": []})
-            st.success("Cadastro realizado com sucesso!")
+        u_reg = st.text_input("Escolha um Login").lower().strip()
+        p_reg = st.text_input("Escolha uma Senha", type="password")
+        tipo_reg = st.selectbox("Plano", ["Pet Lite", "Pet PRO", "Partner"])
+        if st.button("CADASTRAR"):
+            db.usuarios.insert_one({"usuario": u_reg, "senha": p_reg, "tipo": tipo_reg, "avaliacoes_restantes": 5 if "PRO" in tipo_reg else 0, "historico": []})
+            st.success("Cadastro realizado!")
     st.stop()
 
 # --- DASHBOARD LOGADO ---
 user_doc = db.usuarios.find_one({"usuario": st.session_state.user_atual})
 
 with st.sidebar:
-    st.header(f"Tutor: {user_doc.get('usuario')}")
+    st.header(f"Olá, {user_doc.get('usuario')}")
     st.write(f"Plano: **{user_doc.get('tipo')}**")
-    if st.button("SAIR"): st.session_state.logado = False; st.rerun()
+    if st.button("LOGOUT"): st.session_state.logado = False; st.rerun()
     st.divider()
     p_nome = st.text_input("Nome do Pet", "Rex")
-    p_idade = st.number_input("Idade", 0, 25, 3)
-    p_objetivo = st.selectbox("Foco", ["Saúde Geral", "Perda de Peso", "Ganho de Massa", "Senior"])
-    up = st.file_uploader("📸 PetScan IA (Subir Foto)", type=['jpg', 'jpeg', 'png', 'heic'])
+    p_peso = st.number_input("Peso (kg)", 0.5, 100.0, 10.0)
+    up = st.file_uploader("📸 PetScan IA", type=['jpg', 'jpeg', 'png', 'heic'])
 
 # --- MÓDULOS DE INTELIGÊNCIA ---
-tab1, tab2, tab3 = st.tabs(["🧬 PetScan IA", "📍 Vets & Clínicas", "🐕 Caregiver Marketplace"])
+tab1, tab2, tab3 = st.tabs(["🧬 PetScan IA", "📍 Vets Próximos", "🐕 Caregiver Marketplace"])
 
 with tab1:
-    st.subheader("Análise Biométrica e Nutricional")
-    if up and st.button("🚀 INICIAR PETSCAN"):
+    if up and st.button("🚀 INICIAR ANÁLISE"):
         if user_doc.get('avaliacoes_restantes', 0) > 0 or user_doc.get('tipo') == "Pet PRO":
-            with st.status("🧬 Analisando condição corporal..."):
+            with st.status("🧬 Analisando biometria animal..."):
                 img = ImageOps.exif_transpose(Image.open(up)).convert("RGB")
-                
-                prompt_pet = f"""
-                VOCÊ É UM CONSELHO VETERINÁRIO DE ELITE (VET PHD, NUTROLOGISTA E ETÓLOGO).
-                PET: {p_nome} | IDADE: {p_idade} ANOS | FOCO: {p_objetivo}.
-
-                [AVALIAÇÃO]
-                1. IDENTIFICAÇÃO: Raça provável ou mix de raças.
-                2. SCORE CORPORAL (BCS): Avalie visualmente o Body Condition Score (1-9).
-                3. PELAGEM E PELE: Sinais visíveis de saúde ou carências.
-                
-                [PLANO TECHNOBOLT]
-                - Sugestão calórica diária aproximada.
-                - Nível de atividade física recomendado (Baixo/Médio/Atleta).
-                - Recomendações de Nutracêuticos.
-
-                EXPLIQUE TERMOS TÉCNICOS. TERMINE COM 🚀 TECHNOBOLT PET INSIGHT.
+                prompt_scan = f"""
+                ATUE COMO UM CONSELHO VETERINÁRIO PHD. PET: {p_nome}, PESO: {p_peso}KG.
+                1. IDENTIFICAÇÃO: Raça e Mix.
+                2. SCORE CORPORAL (BCS): Avalie visualmente de 1 a 9.
+                3. RECOMENDAÇÃO: Calorias/dia e nível de atividade.
+                4. INSIGHT TECHNOBOLT: Sugestão técnica de longevidade.
                 """
-                res, eng = realizar_scan_pets(prompt_pet, img)
+                res, eng = realizar_scan_ia(prompt_scan, img)
                 if res:
                     st.markdown(f"<div class='result-card-unificado'>{res}</div>", unsafe_allow_html=True)
                     db.usuarios.update_one({"usuario": st.session_state.user_atual}, {"$push": {"historico": {"data": datetime.now(), "relatorio": res}}, "$inc": {"avaliacoes_restantes": -1} if user_doc.get('tipo') != "Pet PRO" else {}})
         else:
-            st.error("Créditos insuficientes. Migre para o plano PRO para scans ilimitados.")
+            st.warning("Assine o Pet PRO para scans ilimitados.")
 
 with tab2:
     st.subheader("📍 Geolocalização Inteligente")
-    loc = st.text_input("Sua Localização (Bairro/Cidade)", "São Paulo, SP")
-    if st.button("FILTRAR MELHORES VETS"):
-        with st.spinner("IA analisando reputação de clínicas locais..."):
-            prompt_geo = f"Liste 3 clínicas veterinárias próximas a {loc}. Para cada uma, faça um 'Resumo IA' dos pontos positivos e um 'Alerta TechnoBolt' baseado em feedbacks comuns de tutores."
-            res_geo, _ = realizar_scan_pets(prompt_geo)
-            st.write(res_geo)
+    loc = st.text_input("Sua Localização", "Bairro, Cidade")
+    if st.button("BUSCAR CLÍNICAS"):
+        prompt_geo = f"Liste 3 clínicas veterinárias em {loc}. Resuma pontos positivos e alertas baseados em avaliações reais."
+        res_geo, _ = realizar_scan_ia(prompt_geo)
+        st.write(res_geo)
 
 with tab3:
     st.subheader("🐕 Caregiver Marketplace")
-    st.markdown("Busque profissionais validados pelo **TechnoBolt Confidence Score**.")
-    
-    col_f1, col_f2 = st.columns(2)
-    busca = col_f1.text_input("Filtrar por Especialidade (ex: Cães Bravos, Idosos)")
-    preco_max = col_f2.slider("Preço Máximo (R$)", 30, 300, 100)
-
-    # Simulação de Marketplace (Puxando de Partners cadastrados no banco)
-    # Aqui a IA poderia ordenar por Score de Confiança
-    st.divider()
-    c1, c2, c3 = st.columns([1, 2, 1])
-    c1.image("https://cdn-icons-png.flaticon.com/512/194/194279.png", width=80)
-    c2.markdown("**Mariana Silva** - *Especialista em Cães Senior*\n\n⭐ Confidence Score: **98%** | 📍 1.2km de você")
-    c3.button("CONTRATAR R$ 65/h", key="contrat_1")
+    st.info("Cuidadores validados pelo TechnoBolt Confidence Score.")
+    # Exemplo de exibição do marketplace
+    col_a, col_b = st.columns([3, 1])
+    col_a.markdown("**Ana Clara (Dog Walker)** - Especialista em Cães Senior\n\n⭐ Score: **98%**")
+    if col_b.button("VER PERFIL"): st.write("Perfil em desenvolvimento.")
 
 st.markdown("<br><br>", unsafe_allow_html=True)
-st.caption(f"TechnoBolt Pets v2.0 © 2026 | Engine: {motores[0].split('/')[-1]}")
+st.caption(f"TechnoBolt Pets © 2026 | Engine: {motores[0] if 'motores' in locals() else 'Gemini'}")
