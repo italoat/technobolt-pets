@@ -1,8 +1,8 @@
 streamlit
 google-generativeai
 Pillow
-pandas
-fpdf
-pymongo[srv]
 pillow-heif
+pandas
+pymongo[srv]
 dnspython
+fpdf
