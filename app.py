@@ -72,7 +72,13 @@ st.markdown("""
         background-color: #3e2723 !important; color: #ffffff !important; border-color: #3e2723 !important;
     }
 
-    /* --- AJUSTE: FORMS E INPUTS MARRONS --- */
+    /* --- CORREÇÃO: LABELS E TEXTOS FLUTUANTES (TRANSPARENTES) --- */
+    label, [data-testid="stLabel"], .stMarkdown p {
+        background-color: transparent !important;
+        color: #ffffff !important;
+    }
+
+    /* --- AJUSTE: FORMS E CONTAINERS --- */
     div[data-testid="stForm"], .stForm, [data-testid="stExpander"] {
         background-color: #1e110f !important; /* Marrom escuro profundo */
         border: 1px solid #4e342e !important;
@@ -80,28 +86,28 @@ st.markdown("""
         border-radius: 15px !important;
     }
     
-    input, textarea, [data-baseweb="select"] > div, div[data-baseweb="input"], 
-    .stSelectbox div, .stNumberInput div, .stTextInput div { 
+    /* --- AJUSTE: INPUTS ESPECÍFICOS (Apenas a caixa digitável fica marrom) --- */
+    input, textarea, .stNumberInput input { 
         background-color: #3e2723 !important; /* Marrom Cocoa */
+        color: #ffffff !important;
+        border-radius: 5px !important;
+    }
+    
+    /* Borda dos inputs */
+    div[data-baseweb="input"], div[data-baseweb="base-input"] {
+        background-color: #3e2723 !important;
         border: 1px solid #5d4037 !important; 
-        color: #ffffff !important;
+        border-radius: 5px !important;
     }
 
-    /* --- CORREÇÃO: FILE UPLOADER (TIROU O BRANCO) --- */
-    [data-testid="stFileUploader"] {
-        background-color: #1e110f !important;
-        padding: 15px;
-        border-radius: 10px;
-        border: 1px solid #4e342e;
-    }
-    [data-testid="stFileUploader"] section {
-        background-color: #2b1d16 !important;
-    }
-    [data-testid="stFileUploader"] span {
+    /* --- AJUSTE: DROPDOWN (SELECTBOX) --- */
+    div[data-baseweb="select"] > div {
+        background-color: #3e2723 !important;
+        border: 1px solid #5d4037 !important;
         color: #ffffff !important;
     }
-
-    /* --- AJUSTE: DROPDOWN LIST (SUSPENSA) --- */
+    
+    /* Lista Suspensa (Popover) */
     div[data-baseweb="popover"], div[role="listbox"] {
         background-color: #2b1d16 !important; /* Marrom Coffee */
         color: #ffffff !important;
@@ -110,8 +116,29 @@ st.markdown("""
     div[role="option"] { color: #ffffff !important; background-color: transparent !important; }
     div[role="option"]:hover { background-color: #4e342e !important; }
 
-    /* BOTÕES */
-    .stButton>button, button[kind="secondary"], button[kind="primary"] {
+    /* --- CORREÇÃO: FILE UPLOADER (REMOÇÃO DO BRANCO) --- */
+    [data-testid="stFileUploader"] {
+        padding: 10px;
+    }
+    [data-testid="stFileUploaderDropzone"] {
+        background-color: #1e110f !important;
+        border: 1px dashed #4e342e !important;
+    }
+    [data-testid="stFileUploaderDropzone"] div {
+        color: #bbbbbb !important;
+        background-color: transparent !important;
+    }
+    [data-testid="stFileUploaderDropzone"] small {
+        color: #888888 !important;
+    }
+    button[data-testid="baseButton-secondary"] {
+        background-color: #3e2723 !important;
+        color: white !important;
+        border: 1px solid #5d4037 !important;
+    }
+
+    /* BOTÕES GERAIS */
+    .stButton>button, button[kind="primary"] {
         background-color: #3e2723 !important; 
         color: #ffffff !important;
         border: 1px solid #4b3621 !important; 
@@ -372,11 +399,9 @@ elif user_data['tipo'] == "Tutor":
         
         *[Referência Visual: Consulte seu veterinário para exames presenciais]*
         """)
-        # Diagrama adicionado e corrigido para aspas triplas para evitar SyntaxError
+        # Diagrama para contexto clínico
         st.markdown("""
-
                 """)
-
 
     with t_cuid:
         cuidadores = list(db.usuarios.find({"tipo": "Cuidador"})) if db is not None else []
