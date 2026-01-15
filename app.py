@@ -106,7 +106,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- GERADOR DE RELATÓRIO PDF (CORREÇÃO DE DOWNLOAD) ---
+# --- GERADOR DE RELATÓRIO PDF ---
 class TechnoboltPDF(FPDF):
     def header(self):
         self.set_fill_color(62, 39, 35) 
@@ -142,19 +142,22 @@ def create_pdf_report(pet_name, especie, modo, sintomas, laudo):
     pdf.set_font('Helvetica', '', 11)
     clean_text = laudo.replace('**', '').replace('###', '').replace('*', '-')
     pdf.multi_cell(0, 8, sanitize_pdf_text(clean_text))
-    # Saída como bytes para evitar erro no Streamlit Cloud
+    # RESOLVIDO: Conversão explícita para bytes
     return bytes(pdf.output())
 
 # --- AI CORE ENGINE ---
 def call_ia(prompt, img=None):
     chaves = [st.secrets.get(f"GEMINI_CHAVE_{i}") for i in range(1, 8) if st.secrets.get(f"GEMINI_CHAVE_{i}")]
-    if not chaves: return "API Key Error."
+    if not chaves: return "Erro: Chaves ausentes."
     genai.configure(api_key=random.choice(chaves))
-    try:
-        model = genai.GenerativeModel("models/gemini-2.0-flash")
-        res = model.generate_content([prompt, img] if img else prompt)
-        return res.text
-    except Exception: return "IA Offline."
+    motores = ["models/gemini-2.0-flash", "models/gemini-flash-latest"]
+    for motor in motores:
+        try:
+            model = genai.GenerativeModel(motor)
+            res = model.generate_content([prompt, img] if img else prompt)
+            return res.text
+        except: continue
+    return "IA Offline."
 
 # --- AUTH SYSTEM ---
 if "logado" not in st.session_state: st.session_state.logado = False
@@ -182,13 +185,13 @@ user_data = st.session_state.user_data
 # --- SIDEBAR ---
 with st.sidebar:
     st.markdown(f"### 👤 {user_data['nome']}")
+    st.caption(f"Perfil: {user_data['tipo']}")
     if st.button("ENCERRAR SESSÃO"):
         st.session_state.logado = False
         st.rerun()
     st.divider()
     cur_pet = None
     if user_data['tipo'] == "Tutor":
-        st.subheader("🐾 Meus Pets")
         pets = list(db.pets.find({"owner_id": user_data['usuario']}))
         if pets:
             sel_name = st.selectbox("Pet em Foco", [p['nome'] for p in pets])
@@ -201,24 +204,23 @@ with st.sidebar:
 
 # ---------------- WORKFLOWS ----------------
 
-# 1. ADMIN MASTER (GOVERNANÇA 3 ABAS)
+# 1. ADMIN MASTER (REESTRUTURADO EM 3 ABAS)
 if user_data['tipo'] == "Admin":
     t_inst, t_audit, t_control = st.tabs(["🏠 Instruções", "💬 Auditoria de Chats", "⚙️ Controles Master"])
     
     with t_inst:
-        st.markdown("""<div class='instruction-box'><b>Painel Admin Technobolt:</b><br>
-        1. <b>Instruções:</b> Visão geral do hub.<br>
+        st.markdown("""<div class='instruction-box'><b>Governança Admin Technobolt:</b><br>
+        1. <b>Instruções:</b> Guia de uso.<br>
         2. <b>Auditoria:</b> Logs de todas as mensagens trocadas.<br>
-        3. <b>Controles:</b> Edição direta da base de dados de usuários.</div>""", unsafe_allow_html=True)
+        3. <b>Controles:</b> Edição direta da base de usuários.</div>""", unsafe_allow_html=True)
 
     with t_audit:
-        st.subheader("Auditoria Global de Mensagens")
+        st.subheader("Auditoria de Mensagens")
         logs = list(db.mensagens.find().sort("dt", -1))
         if logs: st.dataframe(pd.DataFrame(logs), use_container_width=True)
         else: st.info("Sem logs disponíveis.")
 
     with t_control:
-        st.subheader("Gestão de Dados do Hub")
         usuarios = list(db.usuarios.find())
         if usuarios:
             df_users = pd.DataFrame(usuarios)
@@ -232,19 +234,17 @@ if user_data['tipo'] == "Admin":
 elif user_data['tipo'] == "Cuidador":
     t_home, t_edit, t_agend, t_chat = st.tabs(["🏠 Instruções", "👤 Perfil", "📅 Agendamentos", "💬 Mensagens"])
     with t_edit:
-        st.subheader("Configurar Perfil Profissional")
         with st.form("perfil_form"):
-            new_n = st.text_input("Nome", value=user_data['nome'])
-            new_a = st.text_input("Endereço", value=user_data.get('endereco', ''))
-            new_p = st.text_area("Perfil de Cuidado", value=user_data.get('perfil_cuidado', ''))
-            new_v = st.number_input("Valor da Diária", value=user_data.get('valores', 0))
-            if st.form_submit_button("ATUALIZAR DADOS"):
-                db.usuarios.update_one({"usuario": user_data['usuario']}, {"$set": {"nome": new_n, "endereco": new_a, "perfil_cuidado": new_p, "valores": new_v}})
+            n_n = st.text_input("Nome", value=user_data['nome'])
+            n_a = st.text_input("Endereço", value=user_data.get('endereco', ''))
+            n_v = st.number_input("Valor Diária", value=user_data.get('valores', 0))
+            if st.form_submit_button("ATUALIZAR"):
+                db.usuarios.update_one({"usuario": user_data['usuario']}, {"$set": {"nome": n_n, "endereco": n_a, "valores": n_v}})
                 st.rerun()
     with t_agend:
         pedidos = list(db.agendamentos.find({"cuidador_id": user_data['usuario'], "status": "Pendente"}))
         for p in pedidos:
-            st.write(f"📅 Solicitação de {p['tutor_id']} para {p['data']}")
+            st.write(f"📅 Pedido de {p['tutor_id']} para {p['data']}")
             if st.button("APROVAR", key=f"ap_{p['_id']}"):
                 db.agendamentos.update_one({"_id": p['_id']}, {"$set": {"status": "Aprovado"}})
                 st.rerun()
@@ -266,21 +266,21 @@ elif user_data['tipo'] == "Tutor":
     t_home, t_scan, t_cuid, t_chat = st.tabs(["🏠 Instruções", "🧬 PetScan IA", "🤝 Cuidadores", "💬 Chats"])
     with t_scan:
         st.subheader("🧬 Diagnóstico Biométrico Universal")
-        up = st.file_uploader("Submeter Amostra", type=['jpg', 'png', 'heic'])
+        up = st.file_uploader("Amostra", type=['jpg', 'png', 'heic'])
         if up and st.button("EXECUTAR SCAN"):
             img = ImageOps.exif_transpose(Image.open(up)).convert("RGB")
             st.image(img, width=400)
             res = call_ia("Analise este animal: Escore corporal e saúde digestiva.", img=img)
             st.markdown(f"<div class='elite-card'>{res}</div>", unsafe_allow_html=True)
             pdf_bytes = create_pdf_report(cur_pet['nome'] if cur_pet else "Pet", cur_pet['especie'] if cur_pet else "Geral", "Scan IA", "N/A", res)
-            st.download_button("📥 BAIXAR PDF TECHNOBOLT", pdf_bytes, file_name="laudo.pdf", mime="application/pdf")
+            st.download_button("📥 BAIXAR PDF TECHNOBOLT", data=pdf_bytes, file_name="laudo.pdf", mime="application/pdf")
             
-            # DIAGRAMA SEGURO DENTRO DO MARKDOWN
+            # DIAGRAMA AGORA PROTEGIDO DENTRO DE STRING MARKDOWN
             st.markdown("### 📊 Guia de Referência Clínica")
-            
+            st.markdown("
 
 [Image of a Body Condition Score chart for dogs and cats]
-
+")
 
     with t_cuid:
         cuidadores = list(db.usuarios.find({"tipo": "Cuidador"}))
