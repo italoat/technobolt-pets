@@ -11,7 +11,6 @@ import random
 from fpdf import FPDF
 
 # --- SETUP DE ENGENHARIA SÊNIOR ---
-# Configuração inicial deve ser sempre a primeira linha de comando Streamlit
 try:
     pillow_heif.register_heif_opener()
 except:
@@ -28,7 +27,6 @@ st.set_page_config(
 @st.cache_resource
 def iniciar_conexao():
     try:
-        # Verifica se as secrets existem antes de tentar conectar
         if "MONGO_USER" not in st.secrets:
             st.error("⚠️ Secrets do MongoDB não configuradas no .streamlit/secrets.toml")
             return None
@@ -41,7 +39,6 @@ def iniciar_conexao():
         uri = f"mongodb+srv://{user}:{password}@{host}/?appName=Cluster0"
         client = MongoClient(uri, serverSelectionTimeoutMS=5000, tlsAllowInvalidCertificates=True)
         
-        # Teste rápido de conexão
         client.admin.command('ping')
         return client['technoboltpets']
     except Exception as e:
@@ -50,7 +47,7 @@ def iniciar_conexao():
 
 db = iniciar_conexao()
 
-# --- DESIGN SYSTEM: OBSIDIAN & DEEP COCOA (DARK UI FIX) ---
+# --- DESIGN SYSTEM: OBSIDIAN & DEEP COCOA ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
@@ -75,7 +72,7 @@ st.markdown("""
         background-color: #3e2723 !important; color: #ffffff !important; border-color: #3e2723 !important;
     }
 
-    /* ELIMINAÇÃO DE FUNDOS BRANCOS EM FORMS, INPUTS E DROPDOWNS */
+    /* ELIMINAÇÃO DE FUNDOS BRANCOS */
     div[data-testid="stForm"], .stForm, [data-testid="stExpander"] {
         background-color: #0d0d0d !important;
         border: 1px solid #3e2723 !important;
@@ -90,7 +87,7 @@ st.markdown("""
         color: #ffffff !important;
     }
 
-    /* Dropdown list (Selectbox Popover) */
+    /* DROPDOWN */
     div[data-baseweb="popover"], div[role="listbox"] {
         background-color: #1a1a1a !important;
         color: #ffffff !important;
@@ -99,7 +96,7 @@ st.markdown("""
     div[role="option"] { color: #ffffff !important; background-color: transparent !important; }
     div[role="option"]:hover { background-color: #3e2723 !important; }
 
-    /* Botões Obsidian Elite */
+    /* BOTÕES */
     .stButton>button, button[kind="secondary"], button[kind="primary"] {
         background-color: #3e2723 !important; 
         color: #ffffff !important;
@@ -111,7 +108,7 @@ st.markdown("""
     }
     .stButton>button:hover { background-color: #4b3621 !important; border-color: #ffffff !important; color: white !important; }
 
-    /* Cards e Chat */
+    /* CARDS E CHAT */
     .elite-card { background: #0d0d0d; border: 1px solid #3e2723; border-radius: 20px; padding: 25px; margin-bottom: 15px; }
     .instruction-box { background: linear-gradient(145deg, #1a0f0d, #000000); border-left: 5px solid #3e2723; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
     .bubble { padding: 12px; border-radius: 15px; max-width: 80%; line-height: 1.4; margin-bottom: 5px; }
@@ -120,7 +117,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- GERADOR DE RELATÓRIO PDF ---
+# --- PDF ENGINE ---
 class TechnoboltPDF(FPDF):
     def header(self):
         self.set_fill_color(62, 39, 35) 
@@ -135,7 +132,6 @@ class TechnoboltPDF(FPDF):
 
 def sanitize_pdf_text(text):
     if not text: return ""
-    # Remove caracteres que quebram o PDF latin-1
     return text.encode('latin-1', 'replace').decode('latin-1').replace('?', '')
 
 def create_pdf_report(pet_name, especie, modo, sintomas, laudo):
@@ -157,20 +153,21 @@ def create_pdf_report(pet_name, especie, modo, sintomas, laudo):
     pdf.set_font('Helvetica', '', 11)
     clean_text = laudo.replace('**', '').replace('###', '').replace('*', '-')
     pdf.multi_cell(0, 8, sanitize_pdf_text(clean_text))
-    
-    # Retorna os bytes do PDF de forma compatível
     return pdf.output(dest='S').encode('latin-1')
 
 # --- AI CORE ENGINE ---
 def call_ia(prompt, img=None):
-    # Recupera chaves configuradas
     chaves = [st.secrets.get(f"GEMINI_CHAVE_{i}") for i in range(1, 8) if st.secrets.get(f"GEMINI_CHAVE_{i}")]
-    
     if not chaves: 
         return "Erro: Chaves de API (GEMINI_CHAVE_X) não encontradas no secrets."
     
     genai.configure(api_key=random.choice(chaves))
-    motores = ["models/gemini-3-flash-preview", "models/gemini-2.5-flash", "models/gemini-2.0-flash", "models/gemini-flash-latest"]
+    motores = motores = [
+        "models/gemini-3-flash-preview", 
+        "models/gemini-2.5-flash", 
+        "models/gemini-2.0-flash", 
+        "models/gemini-flash-latest"
+    ]
     
     for motor in motores:
         try:
@@ -192,6 +189,7 @@ if not st.session_state.logado:
     with t_in:
         u, p = st.text_input("Usuário"), st.text_input("Senha", type="password")
         if st.button("ACESSAR HUB"):
+            # CORREÇÃO: if db is not None
             if db is not None:
                 user = db.usuarios.find_one({"usuario": u, "senha": p})
                 if user:
@@ -207,6 +205,7 @@ if not st.session_state.logado:
         n, nu, np = st.text_input("Nome Completo"), st.text_input("User ID").lower(), st.text_input("Password", type="password")
         tipo = st.selectbox("Perfil", ["Tutor", "Cuidador", "Admin"])
         if st.button("SOLICITAR ACESSO"):
+            # CORREÇÃO: if db is not None
             if db is not None:
                 if db.usuarios.find_one({"usuario": nu}):
                     st.warning("Usuário já existe.")
@@ -234,6 +233,7 @@ with st.sidebar:
         
     st.divider()
     cur_pet = None
+    # CORREÇÃO: if db is not None
     if user_data['tipo'] == "Tutor" and db is not None:
         pets = list(db.pets.find({"owner_id": user_data['usuario']}))
         if pets:
@@ -260,20 +260,18 @@ if user_data['tipo'] == "Admin":
 
     with t_audit:
         st.subheader("Auditoria de Mensagens")
-        logs = list(db.mensagens.find().sort("dt", -1)) if db else []
+        # CORREÇÃO: if db is not None
+        logs = list(db.mensagens.find().sort("dt", -1)) if db is not None else []
         if logs: st.dataframe(pd.DataFrame(logs).astype(str), use_container_width=True)
         else: st.info("Sem logs disponíveis.")
 
     with t_control:
-        usuarios = list(db.usuarios.find()) if db else []
+        # CORREÇÃO: if db is not None
+        usuarios = list(db.usuarios.find()) if db is not None else []
         if usuarios:
             df_users = pd.DataFrame(usuarios)
-            # Converte ObjectId para string para evitar erro no editor
             df_users['_id'] = df_users['_id'].astype(str)
             new_df = st.data_editor(df_users, use_container_width=True)
-            
-            # Nota: Atualização em massa requer tratamento cuidadoso de IDs, 
-            # aqui simplificado para visualização/demo.
 
 # 2. CUIDADOR MASTER
 elif user_data['tipo'] == "Cuidador":
@@ -289,14 +287,14 @@ elif user_data['tipo'] == "Cuidador":
             n_v = st.number_input("Valor Diária", value=float(user_data.get('valores', 0)))
             if st.form_submit_button("ATUALIZAR"):
                 db.usuarios.update_one({"usuario": user_data['usuario']}, {"$set": {"nome": n_n, "endereco": n_a, "valores": n_v}})
-                # Atualiza session state para refletir na hora
                 st.session_state.user_data['nome'] = n_n
                 st.session_state.user_data['endereco'] = n_a
                 st.session_state.user_data['valores'] = n_v
                 st.rerun()
 
     with t_agend:
-        pedidos = list(db.agendamentos.find({"cuidador_id": user_data['usuario'], "status": "Pendente"})) if db else []
+        # CORREÇÃO: if db is not None
+        pedidos = list(db.agendamentos.find({"cuidador_id": user_data['usuario'], "status": "Pendente"})) if db is not None else []
         if not pedidos: st.write("Nenhum pedido pendente.")
         for p in pedidos:
             st.write(f"📅 Pedido de {p['tutor_id']} para {p['data']}")
@@ -305,7 +303,8 @@ elif user_data['tipo'] == "Cuidador":
                 st.rerun()
 
     with t_chat:
-        chats = db.mensagens.distinct("sender_id", {"receiver_id": user_data['usuario']}) if db else []
+        # CORREÇÃO: if db is not None
+        chats = db.mensagens.distinct("sender_id", {"receiver_id": user_data['usuario']}) if db is not None else []
         for tid in chats:
             with st.expander(f"Conversa com {tid}"):
                 msgs = list(db.mensagens.find({"$or": [{"sender_id": user_data['usuario'], "receiver_id": tid}, {"sender_id": tid, "receiver_id": user_data['usuario']}]}).sort("dt", 1))
@@ -343,7 +342,6 @@ elif user_data['tipo'] == "Tutor":
                 
                 st.markdown(f"<div class='elite-card'>{res}</div>", unsafe_allow_html=True)
                 
-                # Gera PDF
                 pdf_bytes = create_pdf_report(
                     cur_pet['nome'] if cur_pet else "Pet", 
                     cur_pet['especie'] if cur_pet else "Geral", 
@@ -356,11 +354,9 @@ elif user_data['tipo'] == "Tutor":
             except Exception as e:
                 st.error(f"Erro ao processar imagem: {e}")
 
-        # --- CORREÇÃO APLICADA AQUI (LINHA 280) ---
         st.divider()
         st.markdown("### 📊 Guia de Referência Clínica")
         
-        # Uso de aspas triplas para strings multi-linha
         st.markdown("""
         > **Nota:** O Escore de Condição Corporal (ECC) varia de 1 a 9.
         > - **1-3:** Abaixo do peso
@@ -371,7 +367,8 @@ elif user_data['tipo'] == "Tutor":
         """)
 
     with t_cuid:
-        cuidadores = list(db.usuarios.find({"tipo": "Cuidador"})) if db else []
+        # CORREÇÃO: if db is not None
+        cuidadores = list(db.usuarios.find({"tipo": "Cuidador"})) if db is not None else []
         for c in cuidadores:
             with st.container():
                 st.markdown(f"<div class='elite-card'><h3>{c['nome']}</h3><p>📍 {c.get('endereco', 'Não informado')} | R$ {c.get('valores', 0)}/dia</p></div>", unsafe_allow_html=True)
@@ -390,7 +387,8 @@ elif user_data['tipo'] == "Tutor":
                             st.success("Solicitado!")
 
     with t_chat:
-        chats = db.mensagens.distinct("receiver_id", {"sender_id": user_data['usuario']}) if db else []
+        # CORREÇÃO: if db is not None
+        chats = db.mensagens.distinct("receiver_id", {"sender_id": user_data['usuario']}) if db is not None else []
         for cid in chats:
             with st.expander(f"Conversa com {cid}"):
                 msgs = list(db.mensagens.find({"$or": [{"sender_id": user_data['usuario'], "receiver_id": cid}, {"sender_id": cid, "receiver_id": user_data['usuario']}]}).sort("dt", 1))
