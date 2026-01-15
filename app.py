@@ -140,20 +140,34 @@ st.markdown("""
         background-color: #4e342e !important; 
     }
 
-    /* --- CORREÇÃO: CALENDÁRIO (DATE INPUT) --- */
+    /* --- CORREÇÃO AVANÇADA: CALENDÁRIO (DATE INPUT) --- */
+    /* Container Principal do Calendário */
     div[data-baseweb="calendar"] {
-        background-color: #2b1d16 !important; /* Fundo Marrom */
-        color: #ffffff !important; /* Texto Branco */
+        background-color: #2b1d16 !important; 
+        color: #ffffff !important;
         border: 1px solid #4e342e !important;
     }
+    
+    /* Garante que o container do popover do calendário seja marrom */
+    div[data-baseweb="popover"] > div, 
+    div[data-baseweb="popover"] > div > div {
+        background-color: #2b1d16 !important;
+    }
+
+    /* Textos do Cabeçalho (Mês, Ano) e Setas */
+    div[data-baseweb="calendar"] div, 
     div[data-baseweb="calendar"] button {
-        color: #ffffff !important; /* Setas do calendário */
-    }
-    div[data-baseweb="calendar"] div {
-        color: #ffffff !important; /* Dias e meses */
-    }
-    div[aria-label^="Choose"] {
         color: #ffffff !important;
+    }
+    
+    /* Fundo dos dias e botões internos transparente para pegar o marrom do container */
+    div[data-baseweb="calendar"] button {
+        background-color: transparent !important;
+    }
+    
+    /* Hover nos dias */
+    div[data-baseweb="calendar"] button:hover {
+        background-color: #3e2723 !important;
     }
 
     /* --- CORREÇÃO: FILE UPLOADER --- */
@@ -476,11 +490,7 @@ elif user_data['tipo'] == "Tutor":
         """)
         # Diagrama para contexto clínico
         st.markdown("""
-        
-
-[Image of body condition score chart for dogs and cats]
-
-        """)
+                """)
 
     with t_cuid:
         cuidadores = list(db.usuarios.find({"tipo": "Cuidador"})) if db is not None else []
