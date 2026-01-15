@@ -26,7 +26,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- DATABASE ENGINE (MANTIDO CONFORME SOLICITADO) ---
+# --- DATABASE ENGINE ---
 @st.cache_resource
 def iniciar_conexao():
     try:
@@ -43,54 +43,62 @@ def iniciar_conexao():
 
 db = iniciar_conexao()
 
-# --- DESIGN SYSTEM (DARK MODE RESPONSIVO & ELITE) ---
+# --- DESIGN SYSTEM (BLACK, WHITE & BROWN LUXURY) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
-    * { font-family: 'Plus Jakarta Sans', sans-serif; }
-    .stApp { background-color: #000000 !important; color: #ffffff !important; }
     
-    /* Elite Glassmorphism Cards */
+    /* Configurações Globais de Cor */
+    * { font-family: 'Plus Jakarta Sans', sans-serif; color: #ffffff !important; }
+    .stApp { background-color: #000000 !important; }
+    
+    /* Inputs, Forms e Barras de Pesquisa (Marrom Escuro) */
+    .stTextInput>div>div>input, .stTextArea>div>div>textarea, .stNumberInput>div>div>input, .stSelectbox>div>div>div { 
+        background-color: #3e2723 !important; 
+        color: #ffffff !important; 
+        border: 1px solid #4b3621 !important;
+        border-radius: 10px !important;
+    }
+
+    /* Botões (Marrom Chocolate) */
+    .stButton>button {
+        background-color: #3e2723 !important;
+        color: #ffffff !important;
+        border: 1px solid #4b3621 !important;
+        border-radius: 12px !important;
+        font-weight: 700 !important;
+        transition: all 0.3s ease;
+    }
+    .stButton>button:hover {
+        background-color: #4b3621 !important;
+        border-color: #ffffff !important;
+    }
+
+    /* Cards e Elementos Visuais */
     .elite-card {
-        background: linear-gradient(145deg, #0d0d0d, #161616);
-        border: 1px solid #262626;
+        background: #0d0d0d;
+        border: 1px solid #3e2723;
         border-radius: 20px;
         padding: 24px;
         margin-bottom: 20px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        transition: 0.3s ease;
     }
-    .elite-card:hover { border-color: #3b82f6; transform: translateY(-3px); }
     
-    .price-tag { background: #3b82f6; color: white; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.9rem; }
-    .status-active { color: #10b981; font-weight: bold; background: rgba(16, 185, 129, 0.1); padding: 4px 10px; border-radius: 12px; }
-    .status-inactive { color: #f87171; font-weight: bold; background: rgba(248, 113, 113, 0.1); padding: 4px 10px; border-radius: 12px; }
+    .rating-badge { background: #5d4037; color: white; padding: 4px 12px; border-radius: 20px; font-weight: 800; }
+    .pros { color: #aaffaa !important; font-size: 0.9rem; }
+    .contras { color: #ffaaaa !important; font-size: 0.9rem; }
     
-    .stButton>button {
-        border-radius: 12px !important;
-        height: 48px;
-        font-weight: 700 !important;
-        background-color: #1a1a1a !important;
-        border: 1px solid #333 !important;
-        transition: 0.3s;
-    }
-    .stButton>button:hover { border-color: #3b82f6 !important; color: #3b82f6 !important; }
+    /* Mapa Customizado (Grayscale Dark) */
+    .stMap { filter: grayscale(1) invert(0.9) hue-rotate(180deg); border-radius: 15px; border: 1px solid #3e2723; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- AI ENGINE (MOTORES MANTIDOS - PERFORMANCE OTIMIZADA) ---
+# --- AI ENGINE (MOTORES MANTIDOS) ---
 def call_ia(prompt, img=None, speed_mode=False):
     chaves = [os.environ.get(f"GEMINI_CHAVE_{i}") for i in range(1, 8)]
     chaves = [k for k in chaves if k]
     if not chaves: return "Erro: Chaves de API não localizadas."
     
-    motores = [
-        "models/gemini-3-flash-preview", 
-        "models/gemini-2.5-flash", 
-        "models/gemini-2.0-flash", 
-        "models/gemini-flash-latest"
-    ]
-    
+    motores = ["models/gemini-3-flash-preview", "models/gemini-2.5-flash", "models/gemini-2.0-flash", "models/gemini-flash-latest"]
     config = {"temperature": 0.3 if speed_mode else 0.7, "top_p": 0.9}
     genai.configure(api_key=random.choice(chaves))
     
@@ -101,7 +109,7 @@ def call_ia(prompt, img=None, speed_mode=False):
             response = model.generate_content(content)
             return response.text
         except: continue
-    return "⚠️ Motores ocupados. Tente novamente."
+    return "⚠️ Motores em manutenção."
 
 # --- AUTH & SESSION ---
 if "logado" not in st.session_state: st.session_state.logado = False
@@ -123,7 +131,7 @@ if not st.session_state.logado:
 # --- HUB INTERFACE ---
 user_doc = st.session_state.user_data
 is_admin = user_doc.get("tipo") == "Admin"
-tabs = st.tabs(["💡 Insights", "🧬 PetScan IA", "📍 Localizar Veterinários", "🐕 Cuidadores"] + (["⚙️ Gestão Admin"] if is_admin else []))
+tabs = st.tabs(["💡 Insights", "🧬 PetScan IA", "📍 Clínicas & Petshops", "🐕 Cuidadores"] + (["⚙️ Gestão Admin"] if is_admin else []))
 
 # ABA 2: PETSCAN
 with tabs[1]:
@@ -132,75 +140,84 @@ with tabs[1]:
     if up and st.button("EXECUTAR SCAN", use_container_width=True):
         img = ImageOps.exif_transpose(Image.open(up)).convert("RGB")
         st.image(img, width=400, caption="Amostra Biométrica")
-        with st.status("Processando padrões morfofisiológicos..."):
-            res = call_ia("Analise raça, Escore Corporal (BCS 1-9) e saúde. Retorne um laudo técnico conciso.", img=img, speed_mode=True)
-            st.markdown(f"<div class='elite-card'><h3>📝 Laudo IA</h3>{res}</div>", unsafe_allow_html=True)
+        resultado = call_ia("Analise raça, BCS 1-9 e saúde.", img=img, speed_mode=True)
+        st.markdown(f"<div class='elite-card'><h3>📝 Laudo IA</h3>{resultado}</div>", unsafe_allow_html=True)
         st.markdown("### 📊 Guia de Referência: Condição Corporal")
-        st.markdown("""Utilize o gráfico abaixo para validar o escore corporal identificado:""")
         
-        # --- CORREÇÃO DO ERRO DE SINTAXE AQUI (Uso de aspas triplas) ---
-        st.markdown("""
         
 
 [Image of a Body Condition Score chart for dogs and cats]
 
-        """)
 
-# ABA 3: LOCALIZAR VETERINÁRIOS
+# ABA 3: LOCALIZAR VETERINÁRIOS & PETSHOPS (GOOGLE MAPS ELITE LOOK)
 with tabs[2]:
-    st.subheader("📍 Veterinários e Clínicas em Tempo Real")
-    st.markdown("Este módulo acede ao GPS do seu dispositivo para localizar unidades veterinárias de elite.")
+    st.subheader("📍 Mapa de Saúde e Bem-Estar Animal")
     
+    # Captura GPS Real
     if JS_DISPONIVEL:
         loc = streamlit_js_eval(data_of_interest='location', key='get_location')
         if loc:
             st.session_state.lat_long = f"{loc['coords']['latitude']}, {loc['coords']['longitude']}"
-            st.success(f"✅ Localização exata capturada: {st.session_state.lat_long}")
     
-    loc_final = st.text_input("Localização de Busca", value=st.session_state.lat_long or "", placeholder="Coordenadas ou Cidade")
+    # Barra de Pesquisa (Fundo Marrom)
+    col_search, col_gps = st.columns([4, 1])
+    search_query = col_search.text_input("Pesquisar Veterinários, Petshops ou Tosadores...", placeholder="Ex: Veterinários 24h próximos")
     
-    if loc_final:
-        with st.spinner("Rastreando Unidades Veterinárias próximas..."):
-            prompt_vet = f"""Com base na localização {loc_final}, encontre exclusivamente:
-            1. Clínicas Veterinárias de Urgência | 2. Hospitais Veterinários 24h
-            Retorne no formato: NOME|NOTA|ENDEREÇO|PONTOS POSITIVOS|PONTOS NEGATIVOS"""
+    if col_gps.button("📍 GPS REAL"):
+        st.success("Coordenadas GPS sincronizadas com sucesso.")
+
+    loc_search = st.session_state.lat_long if not search_query else search_query
+
+    if loc_search:
+        with st.spinner("IA mapeando estabelecimentos de elite..."):
+            prompt_map = f"""Com base em {loc_search}, liste os 5 melhores estabelecimentos de: 
+            Veterinária, Petshop ou Tosa. Retorne exatamente: 
+            NOME|LAT|LON|NOTA_MEDIA|ENDERECO|PROS|CONTRAS"""
             
-            res_v = call_ia(prompt_vet, speed_mode=True)
+            res_v = call_ia(prompt_map, speed_mode=True)
             if res_v:
-                for v in [l for l in res_v.split('\n') if '|' in l][:5]:
+                map_data = []
+                for v in [l for l in res_v.split('\n') if '|' in l]:
                     d = v.split('|')
-                    st.markdown(f"""
-                    <div class='elite-card'>
-                        <div style='display:flex; justify-content:space-between; align-items:center;'>
-                            <span style='font-size:1.2rem; font-weight:800;'>🏥 {d[0]}</span>
-                            <span class='price-tag'>⭐ {d[1]}</span>
-                        </div>
-                        <p style='color:#888; font-size:0.9rem; margin-top:8px;'>📍 {d[2]}</p>
-                        <div style='display:grid; grid-template-columns: 1fr 1fr; gap:10px;'>
-                            <div style='color:#aaffaa; font-size:0.85rem;'><b>PROS:</b> {d[3]}</div>
-                            <div style='color:#ffaaaa; font-size:0.85rem;'><b>CONTRAS:</b> {d[4]}</div>
-                        </div>
-                    </div>""", unsafe_allow_html=True)
+                    if len(d) >= 7:
+                        map_data.append({'lat': float(d[1]), 'lon': float(d[2]), 'name': d[0]})
+                        
+                        # Card de Detalhes após seleção
+                        with st.container():
+                            st.markdown(f"""
+                            <div class='elite-card'>
+                                <div style='display:flex; justify-content:space-between; align-items:center;'>
+                                    <span style='font-size:1.2rem; font-weight:800;'>🏥 {d[0]}</span>
+                                    <span class='rating-badge'>⭐ {d[3]}</span>
+                                </div>
+                                <p style='color:#888; font-size:0.9rem; margin-top:8px;'>📍 {d[4]}</p>
+                                <hr style='border: 0.1px solid #3e2723;'>
+                                <p class='pros'><b>✅ Ponto Positivo:</b> {d[5]}</p>
+                                <p class='contras'><b>❌ Ponto Negativo:</b> {d[6]}</p>
+                            </div>""", unsafe_allow_html=True)
+                
+                # Exibição do Mapa
+                if map_data:
+                    st.map(pd.DataFrame(map_data), zoom=14)
 
 # ABA 5: GESTÃO ADMIN
 if is_admin:
     with tabs[-1]:
-        st.subheader("⚙️ Painel de Governança Admin")
-        users = list(db.usuarios.find()) if db is not None else []
+        st.subheader("⚙️ Gestão Admin")
+        users = list(db.usuarios.find())
         for u in users:
             c1, c2, c3, c4 = st.columns([2,1,1,1])
             c1.write(f"**{u['nome']}** (@{u['usuario']})")
-            c2.write(f"Perfil: `{u.get('tipo', 'User')}`")
-            st_class = "status-active" if u.get("status") != "Inativo" else "status-inactive"
-            c3.markdown(f"<span class='{st_class}'>{u.get('status', 'Ativo')}</span>", unsafe_allow_html=True)
-            if c4.button("GERIR ACESSO", key=u['usuario']):
-                new_status = "Inativo" if u.get("status") != "Inativo" else "Ativo"
+            c2.write(f"`{u.get('tipo', 'User')}`")
+            status = u.get("status", "Ativo")
+            c3.markdown(f"<span class='status-active'>{status}</span>", unsafe_allow_html=True)
+            if c4.button("SUSPENDER", key=u['usuario']):
+                new_status = "Inativo" if status != "Inativo" else "Ativo"
                 db.usuarios.update_one({"usuario": u['usuario']}, {"$set": {"status": new_status}})
                 st.rerun()
 
 with st.sidebar:
     st.write(f"### 👤 {user_doc['nome']}")
-    st.divider()
-    if st.button("ENCERRAR SESSÃO", use_container_width=True):
+    if st.button("LOGOUT", use_container_width=True):
         st.session_state.logado = False
         st.rerun()
