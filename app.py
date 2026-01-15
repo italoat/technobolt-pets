@@ -153,7 +153,9 @@ def create_pdf_report(pet_name, especie, modo, sintomas, laudo):
     pdf.set_font('Helvetica', '', 11)
     clean_text = laudo.replace('**', '').replace('###', '').replace('*', '-')
     pdf.multi_cell(0, 8, sanitize_pdf_text(clean_text))
-    return pdf.output(dest='S').encode('latin-1')
+    # --- CORREÇÃO APLICADA AQUI ---
+    # Removemos o .encode() pois o objeto já é bytes/bytearray
+    return bytes(pdf.output(dest='S'))
 
 # --- AI CORE ENGINE ---
 def call_ia(prompt, img=None):
@@ -365,6 +367,12 @@ elif user_data['tipo'] == "Tutor":
         
         *[Referência Visual: Consulte seu veterinário para exames presenciais]*
         """)
+        # Diagram added based on clinical reference context
+        st.markdown("
+
+[Image of body condition score chart for dogs and cats]
+")
+
 
     with t_cuid:
         # CORREÇÃO: if db is not None
