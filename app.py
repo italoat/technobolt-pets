@@ -79,11 +79,30 @@ st.markdown("""
     }
 
     /* --- AJUSTE: FORMS E CONTAINERS --- */
-    div[data-testid="stForm"], .stForm, [data-testid="stExpander"] {
+    div[data-testid="stForm"], .stForm {
         background-color: #1e110f !important; /* Marrom escuro profundo */
         border: 1px solid #4e342e !important;
         padding: 20px !important;
         border-radius: 15px !important;
+    }
+
+    /* --- CORREÇÃO: EXPANDER (CONVERSA COM...) --- */
+    [data-testid="stExpander"] {
+        background-color: #1e110f !important;
+        border: 1px solid #4e342e !important;
+        border-radius: 15px !important;
+        color: #ffffff !important;
+    }
+    [data-testid="stExpander"] summary {
+        color: #ffffff !important;
+        background-color: #1e110f !important; /* Remove fundo branco do header */
+    }
+    [data-testid="stExpander"] summary:hover {
+        background-color: #3e2723 !important;
+        color: #ffffff !important;
+    }
+    [data-testid="stExpander"] div[role="button"] p {
+        color: #ffffff !important;
     }
     
     /* --- AJUSTE: INPUTS ESPECÍFICOS (Apenas a caixa digitável fica marrom) --- */
@@ -107,14 +126,19 @@ st.markdown("""
         color: #ffffff !important;
     }
     
-    /* Lista Suspensa (Popover) */
-    div[data-baseweb="popover"], div[role="listbox"] {
+    /* Lista Suspensa (Popover e Virtual Dropdown) - CORREÇÃO FUNDO BRANCO */
+    div[data-baseweb="popover"], div[role="listbox"], ul[data-testid="stSelectboxVirtualDropdown"] {
         background-color: #2b1d16 !important; /* Marrom Coffee */
         color: #ffffff !important;
         border: 1px solid #4e342e !important;
     }
-    div[role="option"] { color: #ffffff !important; background-color: transparent !important; }
-    div[role="option"]:hover { background-color: #4e342e !important; }
+    div[role="option"], li[role="option"] { 
+        color: #ffffff !important; 
+        background-color: transparent !important; 
+    }
+    div[role="option"]:hover, li[role="option"]:hover { 
+        background-color: #4e342e !important; 
+    }
 
     /* --- CORREÇÃO: FILE UPLOADER (REMOÇÃO DO BRANCO) --- */
     [data-testid="stFileUploader"] {
@@ -401,7 +425,11 @@ elif user_data['tipo'] == "Tutor":
         """)
         # Diagrama para contexto clínico
         st.markdown("""
-                """)
+        
+
+[Image of body condition score chart for dogs and cats]
+
+        """)
 
     with t_cuid:
         cuidadores = list(db.usuarios.find({"tipo": "Cuidador"})) if db is not None else []
