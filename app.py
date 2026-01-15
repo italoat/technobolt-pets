@@ -36,7 +36,7 @@ def iniciar_conexao():
 
 db = iniciar_conexao()
 
-# --- DESIGN SYSTEM: OBSIDIAN & DEEP COCOA (UI ANTI-WHITEFLASH) ---
+# --- DESIGN SYSTEM: OBSIDIAN & DEEP COCOA (DARK-FIRST UI) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
@@ -62,15 +62,14 @@ st.markdown("""
         background-color: #3e2723 !important; color: #ffffff !important; border-color: #3e2723 !important;
     }
 
-    /* ELIMINAÇÃO DE FUNDOS BRANCOS EM FORMS E INPUTS */
-    div[data-testid="stForm"], .stForm, [data-testid="stExpander"] {
+    /* ELIMINAÇÃO DEFINITIVA DE FUNDOS BRANCOS (FORMS, INPUTS, SELECTS) */
+    div[data-testid="stForm"], .stForm, [data-testid="stExpander"], .st-emotion-cache-12w0qpk {
         background-color: #0d0d0d !important;
         border: 1px solid #3e2723 !important;
         padding: 20px !important;
         border-radius: 15px !important;
     }
     
-    /* Inputs, Selectboxes e Áreas de Texto */
     input, textarea, [data-baseweb="select"] > div, div[data-baseweb="input"], 
     .stSelectbox div, .stNumberInput div, .stTextInput div { 
         background-color: #1a1a1a !important; 
@@ -78,8 +77,8 @@ st.markdown("""
         color: #ffffff !important;
     }
 
-    /* Estilização para Popovers e Listboxes (Dropdown menus) */
-    div[data-baseweb="popover"], div[role="listbox"] {
+    /* Estilização para Popovers e Dropdown (Selectbox/Multiselect) */
+    div[data-baseweb="popover"], div[role="listbox"], [data-baseweb="menu"] {
         background-color: #1a1a1a !important;
         color: #ffffff !important;
         border: 1px solid #3e2723 !important;
@@ -87,7 +86,7 @@ st.markdown("""
     div[role="option"] { color: #ffffff !important; background-color: transparent !important; }
     div[role="option"]:hover { background-color: #3e2723 !important; }
 
-    /* Botões - Forçando visual Obsidian e removendo bordas de sistema */
+    /* Botões Elite */
     .stButton>button, button[kind="secondary"], button[kind="primary"] {
         background-color: #3e2723 !important; 
         color: #ffffff !important;
@@ -108,7 +107,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- GERADOR DE RELATÓRIO PDF (SOLUÇÃO BYTES) ---
+# --- GERADOR DE RELATÓRIO PDF (FIX BYTES SÊNIOR) ---
 class TechnoboltPDF(FPDF):
     def header(self):
         self.set_fill_color(62, 39, 35) 
@@ -150,13 +149,13 @@ def create_pdf_report(pet_name, especie, modo, sintomas, laudo):
     pdf.set_font('Helvetica', '', 11)
     clean_text = laudo.replace('**', '').replace('###', '').replace('*', '-')
     pdf.multi_cell(0, 8, sanitize_pdf_text(clean_text))
-    # RESOLUÇÃO DO ERRO: Forçando saída como bytes
+    # CRÍTICO: Conversão explícita para bytes para download_button
     return bytes(pdf.output())
 
 # --- AI CORE ENGINE ---
 def call_ia(prompt, img=None):
-    chaves = [st.secrets.get(f"GEMINI_CHAVE_{i}") for i in range(1, 8) if st.secrets.get(f"GEMINI_CHAVE_{i}")]
-    if not chaves: return "Erro: Chaves de API ausentes."
+    chaves = [st.secrets.get(f"GEMINI_CHAVE_{i}") for i in range(1, 8)]
+    chaves = [k for k in chaves if k]
     motores = ["models/gemini-2.0-flash", "models/gemini-flash-latest"]
     genai.configure(api_key=random.choice(chaves))
     for motor in motores:
@@ -208,22 +207,21 @@ with st.sidebar:
             cur_pet = next(p for p in pets if p['nome'] == sel_name)
         
         with st.expander("➕ Adicionar Pet"):
-            p_n = st.text_input("Nome")
-            p_e = st.text_input("Espécie")
+            p_n, p_e = st.text_input("Nome"), st.text_input("Espécie")
             if st.button("Salvar Pet"):
                 db.pets.insert_one({"owner_id": user_data['usuario'], "nome": p_n, "especie": p_e})
                 st.rerun()
 
 # ---------------- WORKFLOWS ----------------
 
-# 1. ADMIN MASTER (REESTRUTURADO EM 3 ABAS)
+# 1. ADMIN MASTER (GOVERNANÇA INTEGRAL)
 if user_data['tipo'] == "Admin":
     t_inst, t_audit, t_control = st.tabs(["🏠 Instruções", "💬 Auditoria de Chats", "⚙️ Controles Master"])
     
     with t_inst:
-        st.markdown("""<div class='instruction-box'><b>Painel de Governança Admin:</b><br>
-        1. <b>Instruções:</b> Guia operacional.<br>
-        2. <b>Auditoria de Chats:</b> Monitoramento total de logs entre usuários.<br>
+        st.markdown("""<div class='instruction-box'><b>Governança Admin Technobolt:</b><br>
+        1. <b>Instruções:</b> Guia de uso.<br>
+        2. <b>Auditoria:</b> Monitoramento total de logs entre usuários.<br>
         3. <b>Controles Master:</b> Edição direta da base de dados.</div>""", unsafe_allow_html=True)
 
     with t_audit:
@@ -246,8 +244,9 @@ if user_data['tipo'] == "Admin":
 # 2. CUIDADOR MASTER
 elif user_data['tipo'] == "Cuidador":
     t_home, t_edit, t_agend, t_chat = st.tabs(["🏠 Instruções", "👤 Meus Dados", "📅 Agendamentos", "💬 Mensagens"])
+    with t_home: st.markdown("<div class='instruction-box'><b>Olá Cuidador!</b> Gerencie seu perfil e solicitações.</div>", unsafe_allow_html=True)
     with t_edit:
-        st.subheader("Configurar Perfil Profissional")
+        st.subheader("Perfil Profissional")
         with st.form("perfil_form"):
             new_n = st.text_input("Nome", value=user_data['nome'])
             new_a = st.text_input("Endereço", value=user_data.get('endereco', ''))
@@ -256,7 +255,6 @@ elif user_data['tipo'] == "Cuidador":
             if st.form_submit_button("ATUALIZAR DADOS"):
                 db.usuarios.update_one({"usuario": user_data['usuario']}, {"$set": {"nome": new_n, "endereco": new_a, "perfil_cuidado": new_p, "valores": new_v}})
                 st.rerun()
-
     with t_agend:
         pedidos = list(db.agendamentos.find({"cuidador_id": user_data['usuario'], "status": "Pendente"}))
         for p in pedidos:
@@ -268,7 +266,6 @@ elif user_data['tipo'] == "Cuidador":
             if c2.button("RECUSAR", key=f"re_{p['_id']}"):
                 db.agendamentos.update_one({"_id": p['_id']}, {"$set": {"status": "Recusado"}})
                 st.rerun()
-
     with t_chat:
         chats = db.mensagens.distinct("sender_id", {"receiver_id": user_data['usuario']})
         for tutor_id in chats:
@@ -285,7 +282,7 @@ elif user_data['tipo'] == "Cuidador":
 # 3. TUTOR MASTER
 elif user_data['tipo'] == "Tutor":
     t_home, t_scan, t_cuid, t_chat = st.tabs(["🏠 Instruções", "🧬 PetScan IA", "🤝 Cuidadores", "💬 Chats"])
-    
+    with t_home: st.markdown("<div class='instruction-box'><b>Olá Tutor!</b> Use o PetScan e contrate cuidadores qualificados.</div>", unsafe_allow_html=True)
     with t_scan:
         st.subheader("🧬 Diagnóstico Biométrico Universal")
         up = st.file_uploader("Submeter Amostra", type=['jpg', 'png', 'heic'])
@@ -294,26 +291,20 @@ elif user_data['tipo'] == "Tutor":
             st.image(img, width=400)
             res = call_ia(f"Especialista: Analise este {cur_pet['especie'] if cur_pet else 'Pet'}. Escore corporal e fezes.", img=img)
             st.markdown(f"<div class='elite-card'>{res}</div>", unsafe_allow_html=True)
-            pdf_b = create_pdf_report(cur_pet['nome'] if cur_pet else "Pet", cur_pet['especie'] if cur_pet else "Agnostico", "Geral", "N/A", res)
-            st.download_button("📥 BAIXAR PDF TECHNOBOLT", data=pdf_b, file_name="laudo.pdf", mime="application/pdf")
+            pdf_bytes = create_pdf_report(cur_pet['nome'] if cur_pet else "Pet", cur_pet['especie'] if cur_pet else "Agnostico", "Geral", "N/A", res)
+            st.download_button("📥 BAIXAR PDF TECHNOBOLT", pdf_bytes, file_name="laudo.pdf", mime="application/pdf")
             
             st.markdown("### 📊 Guia de Referência Clínica")
             
 
 [Image of a Body Condition Score chart for dogs and cats]
 
-            
+
     with t_cuid:
         cuidadores = list(db.usuarios.find({"tipo": "Cuidador"}))
         for c in cuidadores:
             with st.container():
-                st.markdown(f"""
-                <div class='elite-card'>
-                    <h3>{c['nome']} {'⭐' * int(c.get('rating', 5))}</h3>
-                    <p>📍 {c.get('endereco', '')} | 💰 R$ {c.get('valores', 0)}/dia</p>
-                    <p>🐾 {c.get('perfil_cuidado', 'Não detalhado')}</p>
-                </div>
-                """, unsafe_allow_html=True)
+                st.markdown(f"<div class='elite-card'><h3>{c['nome']} {'⭐' * int(c.get('rating', 5))}</h3><p>📍 {c.get('endereco', '')} | 💰 R$ {c.get('valores', 0)}/dia</p></div>", unsafe_allow_html=True)
                 c1, c2, c3 = st.columns(3)
                 with c1:
                     with st.expander("💬 Enviar Mensagem"):
@@ -333,7 +324,6 @@ elif user_data['tipo'] == "Tutor":
                         if st.button("Avaliar", key=f"av_{c['usuario']}"):
                             db.usuarios.update_one({"usuario": c['usuario']}, {"$set": {"rating": (c.get('rating', 5) + rt)/2}})
                             st.success("Avaliado!")
-
     with t_chat:
         chats = db.mensagens.distinct("receiver_id", {"sender_id": user_data['usuario']})
         for care_id in chats:
