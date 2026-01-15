@@ -155,10 +155,16 @@ st.markdown("""
     [data-testid="stFileUploaderDropzone"] small {
         color: #888888 !important;
     }
-    button[data-testid="baseButton-secondary"] {
-        background-color: #3e2723 !important;
-        color: white !important;
+    
+    /* CORREÇÃO ESPECÍFICA DO BOTÃO "BROWSE FILES" */
+    [data-testid="stFileUploader"] button {
+        background-color: #3e2723 !important; 
+        color: #ffffff !important;
         border: 1px solid #5d4037 !important;
+    }
+    [data-testid="stFileUploader"] button:hover {
+        background-color: #4b3621 !important;
+        border-color: #ffffff !important;
     }
 
     /* BOTÕES GERAIS */
@@ -425,11 +431,7 @@ elif user_data['tipo'] == "Tutor":
         """)
         # Diagrama para contexto clínico
         st.markdown("""
-        
-
-[Image of body condition score chart for dogs and cats]
-
-        """)
+                """)
 
     with t_cuid:
         cuidadores = list(db.usuarios.find({"tipo": "Cuidador"})) if db is not None else []
