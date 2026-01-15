@@ -72,29 +72,29 @@ st.markdown("""
         background-color: #3e2723 !important; color: #ffffff !important; border-color: #3e2723 !important;
     }
 
-    /* ELIMINAÇÃO DE FUNDOS BRANCOS */
+    /* --- AJUSTE: FORMS E INPUTS MARRONS --- */
     div[data-testid="stForm"], .stForm, [data-testid="stExpander"] {
-        background-color: #0d0d0d !important;
-        border: 1px solid #3e2723 !important;
+        background-color: #1e110f !important; /* Marrom escuro profundo */
+        border: 1px solid #4e342e !important;
         padding: 20px !important;
         border-radius: 15px !important;
     }
     
     input, textarea, [data-baseweb="select"] > div, div[data-baseweb="input"], 
     .stSelectbox div, .stNumberInput div, .stTextInput div { 
-        background-color: #1a1a1a !important; 
-        border: 1px solid #4b3621 !important; 
+        background-color: #3e2723 !important; /* Marrom Cocoa */
+        border: 1px solid #5d4037 !important; 
         color: #ffffff !important;
     }
 
-    /* DROPDOWN */
+    /* --- AJUSTE: DROPDOWN LIST (SUSPENSA) --- */
     div[data-baseweb="popover"], div[role="listbox"] {
-        background-color: #1a1a1a !important;
+        background-color: #2b1d16 !important; /* Marrom Coffee */
         color: #ffffff !important;
-        border: 1px solid #3e2723 !important;
+        border: 1px solid #4e342e !important;
     }
     div[role="option"] { color: #ffffff !important; background-color: transparent !important; }
-    div[role="option"]:hover { background-color: #3e2723 !important; }
+    div[role="option"]:hover { background-color: #4e342e !important; }
 
     /* BOTÕES */
     .stButton>button, button[kind="secondary"], button[kind="primary"] {
@@ -162,7 +162,7 @@ def call_ia(prompt, img=None):
         return "Erro: Chaves de API (GEMINI_CHAVE_X) não encontradas no secrets."
     
     genai.configure(api_key=random.choice(chaves))
-    motores = motores = [
+    motores = [
         "models/gemini-3-flash-preview", 
         "models/gemini-2.5-flash", 
         "models/gemini-2.0-flash", 
