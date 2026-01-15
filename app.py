@@ -237,7 +237,7 @@ def create_pdf_report(pet_name, especie, modo, sintomas, laudo):
     pdf.multi_cell(0, 8, sanitize_pdf_text(clean_text))
     return bytes(pdf.output(dest='S'))
 
-# --- AI CORE ENGINE ---
+# --- AI CORE ENGINE (CORRIGIDO) ---
 def call_ia(prompt, img=None):
     chaves = [st.secrets.get(f"GEMINI_CHAVE_{i}") for i in range(1, 8) if st.secrets.get(f"GEMINI_CHAVE_{i}")]
     if not chaves: 
@@ -251,14 +251,27 @@ def call_ia(prompt, img=None):
         "models/gemini-flash-latest"
     ]
     
+    # Configuração de segurança para permitir análise veterinária (Evita bloqueios)
+    safe_config = [
+        {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+        {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+        {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+        {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
+    ]
+    
+    last_error = None
+
     for motor in motores:
         try:
             model = genai.GenerativeModel(motor)
-            res = model.generate_content([prompt, img] if img else prompt)
+            # Adicionado safety_settings para evitar bloqueio silencioso da resposta
+            res = model.generate_content([prompt, img] if img else prompt, safety_settings=safe_config)
             return res.text
-        except Exception: 
+        except Exception as e: 
+            last_error = e
             continue
-    return "IA Offline ou sobrecarregada no momento."
+    
+    return f"IA Offline ou sobrecarregada. Detalhe do erro: {last_error}"
 
 # --- AUTH SYSTEM ---
 if "logado" not in st.session_state: st.session_state.logado = False
@@ -442,7 +455,11 @@ elif user_data['tipo'] == "Tutor":
         """)
         # Diagrama para contexto clínico
         st.markdown("""
-                """)
+        
+
+[Image of body condition score chart for dogs and cats]
+
+        """)
 
     with t_cuid:
         cuidadores = list(db.usuarios.find({"tipo": "Cuidador"})) if db is not None else []
