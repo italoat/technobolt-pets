@@ -64,6 +64,7 @@ st.markdown("""
     
     .price-tag { background: #3b82f6; color: white; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.9rem; }
     .status-active { color: #10b981; font-weight: bold; background: rgba(16, 185, 129, 0.1); padding: 4px 10px; border-radius: 12px; }
+    .status-inactive { color: #f87171; font-weight: bold; background: rgba(248, 113, 113, 0.1); padding: 4px 10px; border-radius: 12px; }
     
     .stButton>button {
         border-radius: 12px !important;
@@ -137,37 +138,31 @@ with tabs[1]:
         st.markdown("### 📊 Guia de Referência: Condição Corporal")
         st.markdown("""Utilize o gráfico abaixo para validar o escore corporal identificado:""")
         
-        # Referência visual correta
-        st.markdown("
+        # --- CORREÇÃO DO ERRO DE SINTAXE AQUI (Uso de aspas triplas) ---
+        st.markdown("""
+        
 
 [Image of a Body Condition Score chart for dogs and cats]
-")
 
-# ABA 3: LOCALIZAR VETERINÁRIOS (GPS REAL & EXCLUSIVIDADE VET)
+        """)
+
+# ABA 3: LOCALIZAR VETERINÁRIOS
 with tabs[2]:
     st.subheader("📍 Veterinários e Clínicas em Tempo Real")
     st.markdown("Este módulo acede ao GPS do seu dispositivo para localizar unidades veterinárias de elite.")
     
     if JS_DISPONIVEL:
-        # Pedido de autorização ao navegador
         loc = streamlit_js_eval(data_of_interest='location', key='get_location')
         if loc:
             st.session_state.lat_long = f"{loc['coords']['latitude']}, {loc['coords']['longitude']}"
-            st.success(f"✅ Localização exata capturada via GPS: {st.session_state.lat_long}")
-        else:
-            if st.button("📍 CLIQUE PARA AUTORIZAR GPS DO DISPOSITIVO", use_container_width=True):
-                st.info("Aguardando permissão do navegador...")
+            st.success(f"✅ Localização exata capturada: {st.session_state.lat_long}")
     
-    loc_final = st.text_input("Localização de Busca (GPS Ativo)", value=st.session_state.lat_long or "", placeholder="Coordenadas ou Cidade")
+    loc_final = st.text_input("Localização de Busca", value=st.session_state.lat_long or "", placeholder="Coordenadas ou Cidade")
     
     if loc_final:
         with st.spinner("Rastreando Unidades Veterinárias próximas..."):
-            # Prompt focado estritamente em veterinária
             prompt_vet = f"""Com base na localização {loc_final}, encontre exclusivamente:
-            1. Clínicas Veterinárias de Urgência
-            2. Hospitais Veterinários 24h
-            3. Médicos Veterinários Especialistas
-            Ignore petshops ou lojas que não possuam atendimento clínico.
+            1. Clínicas Veterinárias de Urgência | 2. Hospitais Veterinários 24h
             Retorne no formato: NOME|NOTA|ENDEREÇO|PONTOS POSITIVOS|PONTOS NEGATIVOS"""
             
             res_v = call_ia(prompt_vet, speed_mode=True)
@@ -181,13 +176,13 @@ with tabs[2]:
                             <span class='price-tag'>⭐ {d[1]}</span>
                         </div>
                         <p style='color:#888; font-size:0.9rem; margin-top:8px;'>📍 {d[2]}</p>
-                        <div style='display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:15px;'>
+                        <div style='display:grid; grid-template-columns: 1fr 1fr; gap:10px;'>
                             <div style='color:#aaffaa; font-size:0.85rem;'><b>PROS:</b> {d[3]}</div>
                             <div style='color:#ffaaaa; font-size:0.85rem;'><b>CONTRAS:</b> {d[4]}</div>
                         </div>
                     </div>""", unsafe_allow_html=True)
 
-# ABA 5: GESTÃO ADMIN (CONTROLE DE GOVERNANÇA)
+# ABA 5: GESTÃO ADMIN
 if is_admin:
     with tabs[-1]:
         st.subheader("⚙️ Painel de Governança Admin")
