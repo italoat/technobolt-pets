@@ -126,7 +126,7 @@ st.markdown("""
         color: #ffffff !important;
     }
     
-    /* Lista Suspensa (Popover e Virtual Dropdown) - CORREÇÃO FUNDO BRANCO */
+    /* Lista Suspensa (Popover e Virtual Dropdown) */
     div[data-baseweb="popover"], div[role="listbox"], ul[data-testid="stSelectboxVirtualDropdown"] {
         background-color: #2b1d16 !important; /* Marrom Coffee */
         color: #ffffff !important;
@@ -140,7 +140,23 @@ st.markdown("""
         background-color: #4e342e !important; 
     }
 
-    /* --- CORREÇÃO: FILE UPLOADER (REMOÇÃO DO BRANCO) --- */
+    /* --- CORREÇÃO: CALENDÁRIO (DATE INPUT) --- */
+    div[data-baseweb="calendar"] {
+        background-color: #2b1d16 !important; /* Fundo Marrom */
+        color: #ffffff !important; /* Texto Branco */
+        border: 1px solid #4e342e !important;
+    }
+    div[data-baseweb="calendar"] button {
+        color: #ffffff !important; /* Setas do calendário */
+    }
+    div[data-baseweb="calendar"] div {
+        color: #ffffff !important; /* Dias e meses */
+    }
+    div[aria-label^="Choose"] {
+        color: #ffffff !important;
+    }
+
+    /* --- CORREÇÃO: FILE UPLOADER --- */
     [data-testid="stFileUploader"] {
         padding: 10px;
     }
@@ -156,7 +172,7 @@ st.markdown("""
         color: #888888 !important;
     }
     
-    /* CORREÇÃO ESPECÍFICA DO BOTÃO "BROWSE FILES" */
+    /* BOTÃO "BROWSE FILES" */
     [data-testid="stFileUploader"] button {
         background-color: #3e2723 !important; 
         color: #ffffff !important;
@@ -167,7 +183,7 @@ st.markdown("""
         border-color: #ffffff !important;
     }
 
-    /* BOTÕES GERAIS E ESPECÍFICOS (Download e Form Submit) */
+    /* BOTÕES GERAIS E ESPECÍFICOS */
     .stButton > button, 
     .stDownloadButton > button,
     [data-testid="stFormSubmitButton"] > button,
@@ -251,7 +267,7 @@ def call_ia(prompt, img=None):
         "models/gemini-flash-latest"
     ]
     
-    # Configuração de segurança para permitir análise veterinária (Evita bloqueios)
+    # Configuração de segurança para permitir análise veterinária
     safe_config = [
         {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
         {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
@@ -264,7 +280,6 @@ def call_ia(prompt, img=None):
     for motor in motores:
         try:
             model = genai.GenerativeModel(motor)
-            # Adicionado safety_settings para evitar bloqueio silencioso da resposta
             res = model.generate_content([prompt, img] if img else prompt, safety_settings=safe_config)
             return res.text
         except Exception as e: 
@@ -387,9 +402,15 @@ elif user_data['tipo'] == "Cuidador":
         if not pedidos: st.write("Nenhum pedido pendente.")
         for p in pedidos:
             st.write(f"📅 Pedido de {p['tutor_id']} para {p['data']}")
-            if st.button("APROVAR", key=f"ap_{p['_id']}"):
-                db.agendamentos.update_one({"_id": p['_id']}, {"$set": {"status": "Aprovado"}})
-                st.rerun()
+            c1, c2 = st.columns(2)
+            with c1:
+                if st.button("✅ APROVAR", key=f"ap_{p['_id']}"):
+                    db.agendamentos.update_one({"_id": p['_id']}, {"$set": {"status": "Aprovado"}})
+                    st.rerun()
+            with c2:
+                if st.button("❌ REPROVAR", key=f"rep_{p['_id']}"):
+                    db.agendamentos.update_one({"_id": p['_id']}, {"$set": {"status": "Reprovado"}})
+                    st.rerun()
 
     with t_chat:
         chats = db.mensagens.distinct("sender_id", {"receiver_id": user_data['usuario']}) if db is not None else []
