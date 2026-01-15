@@ -10,21 +10,9 @@ from pymongo import MongoClient
 import pillow_heif
 import random
 
-# Tenta importar o componente de JS de forma segura para GPS em tempo real
-try:
-    from streamlit_js_eval import streamlit_js_eval
-    JS_DISPONIVEL = True
-except ImportError:
-    JS_DISPONIVEL = False
-
-# --- CONFIGURAÇÃO DE ENGENHARIA DE ELITE ---
+# --- CONFIGURAÇÃO DE ENGENHARIA ---
 pillow_heif.register_heif_opener()
-st.set_page_config(
-    page_title="TechnoBolt Pets Hub | Elite Edition", 
-    layout="wide", 
-    page_icon="🐾",
-    initial_sidebar_state="collapsed"
-)
+st.set_page_config(page_title="TechnoBolt Pets Hub | Enterprise", layout="wide", page_icon="🐾")
 
 # --- DATABASE ENGINE ---
 @st.cache_resource
@@ -38,7 +26,7 @@ def iniciar_conexao():
         client = MongoClient(uri, serverSelectionTimeoutMS=5000, tlsAllowInvalidCertificates=True)
         return client['technoboltpets']
     except Exception as e:
-        st.error(f"⚠️ Erro Crítico de Database: {e}")
+        st.error(f"⚠️ Erro de Database: {e}")
         return None
 
 db = iniciar_conexao()
@@ -47,177 +35,196 @@ db = iniciar_conexao()
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
-    
-    /* Configurações Globais de Cor */
     * { font-family: 'Plus Jakarta Sans', sans-serif; color: #ffffff !important; }
     .stApp { background-color: #000000 !important; }
     
-    /* Inputs, Forms e Barras de Pesquisa (Marrom Escuro) */
+    /* Inputs, Forms e Barras (Marrom Chocolate) */
     .stTextInput>div>div>input, .stTextArea>div>div>textarea, .stNumberInput>div>div>input, .stSelectbox>div>div>div { 
-        background-color: #3e2723 !important; 
-        color: #ffffff !important; 
-        border: 1px solid #4b3621 !important;
-        border-radius: 10px !important;
+        background-color: #3e2723 !important; border: 1px solid #4b3621 !important; color: #ffffff !important;
     }
 
-    /* Botões (Marrom Chocolate) */
+    /* Botões Customizados */
     .stButton>button {
-        background-color: #3e2723 !important;
-        color: #ffffff !important;
-        border: 1px solid #4b3621 !important;
-        border-radius: 12px !important;
-        font-weight: 700 !important;
-        transition: all 0.3s ease;
+        background-color: #3e2723 !important; color: #ffffff !important;
+        border: 1px solid #4b3621 !important; border-radius: 12px !important;
+        font-weight: 700 !important; transition: 0.3s; width: 100%;
     }
-    .stButton>button:hover {
-        background-color: #4b3621 !important;
-        border-color: #ffffff !important;
-    }
+    .stButton>button:hover { background-color: #4b3621 !important; border-color: #ffffff !important; }
 
-    /* Cards e Elementos Visuais */
+    /* Estilo de Abas */
+    .stTabs [data-baseweb="tab-list"] { background-color: #000000; }
+    .stTabs [data-baseweb="tab"] { color: #888 !important; }
+    .stTabs [aria-selected="true"] { color: #ffffff !important; border-bottom-color: #3e2723 !important; }
+
+    /* Cards Elite */
     .elite-card {
-        background: #0d0d0d;
-        border: 1px solid #3e2723;
-        border-radius: 20px;
-        padding: 24px;
-        margin-bottom: 20px;
+        background: #0d0d0d; border: 1px solid #3e2723;
+        border-radius: 20px; padding: 20px; margin-bottom: 15px;
     }
-    
-    .rating-badge { background: #5d4037; color: white; padding: 4px 12px; border-radius: 20px; font-weight: 800; }
-    .pros { color: #aaffaa !important; font-size: 0.9rem; }
-    .contras { color: #ffaaaa !important; font-size: 0.9rem; }
-    
-    /* Mapa Customizado (Grayscale Dark) */
-    .stMap { filter: grayscale(1) invert(0.9) hue-rotate(180deg); border-radius: 15px; border: 1px solid #3e2723; }
+    .rating-badge { background: #5d4037; padding: 4px 12px; border-radius: 20px; font-weight: 800; }
+    .pros { color: #aaffaa !important; }
+    .contras { color: #ffaaaa !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- AI ENGINE (MOTORES MANTIDOS) ---
-def call_ia(prompt, img=None, speed_mode=False):
+# --- AI CORE ---
+def call_ia(prompt, img=None):
     chaves = [os.environ.get(f"GEMINI_CHAVE_{i}") for i in range(1, 8)]
     chaves = [k for k in chaves if k]
-    if not chaves: return "Erro: Chaves de API não localizadas."
-    
+    if not chaves: return "Erro de Chave API."
     motores = ["models/gemini-3-flash-preview", "models/gemini-2.5-flash", "models/gemini-2.0-flash", "models/gemini-flash-latest"]
-    config = {"temperature": 0.3 if speed_mode else 0.7, "top_p": 0.9}
     genai.configure(api_key=random.choice(chaves))
-    
     for motor in motores:
         try:
-            model = genai.GenerativeModel(motor, generation_config=config)
-            content = [prompt, img] if img else prompt
-            response = model.generate_content(content)
-            return response.text
+            model = genai.GenerativeModel(motor)
+            res = model.generate_content([prompt, img] if img else prompt)
+            return res.text
         except: continue
-    return "⚠️ Motores em manutenção."
+    return "IA Offline."
 
-# --- AUTH & SESSION ---
+# --- AUTH LOGIC ---
 if "logado" not in st.session_state: st.session_state.logado = False
-if "lat_long" not in st.session_state: st.session_state.lat_long = None
+if "user_data" not in st.session_state: st.session_state.user_data = None
 
-if not st.session_state.logado:
-    st.markdown("<h1 style='text-align: center; font-weight:800;'>🐾 TECHNOBOLT PETS</h1>", unsafe_allow_html=True)
-    with st.container():
-        u = st.text_input("Usuário", placeholder="Seu username")
-        p = st.text_input("Senha", type="password", placeholder="Sua senha")
-        if st.button("AUTENTICAR NO HUB", use_container_width=True):
-            user = db.usuarios.find_one({"usuario": u, "senha": p}) if db is not None else None
+def login():
+    st.markdown("<h1 style='text-align: center;'>🐾 TECHNOBOLT PETS</h1>", unsafe_allow_html=True)
+    t1, t2 = st.tabs(["🔐 Entrar", "📝 Cadastrar"])
+    with t1:
+        u = st.text_input("Usuário")
+        p = st.text_input("Senha", type="password")
+        if st.button("ACESSAR HUB"):
+            user = db.usuarios.find_one({"usuario": u, "senha": p})
             if user:
                 st.session_state.logado = True
                 st.session_state.user_data = user
                 st.rerun()
+            else: st.error("Acesso negado.")
+    with t2:
+        n = st.text_input("Nome Completo")
+        nu = st.text_input("Novo Usuário").lower()
+        np = st.text_input("Senha ", type="password")
+        addr = st.text_input("Endereço Completo")
+        tipo = st.selectbox("Tipo de Conta", ["Tutor", "Cuidador"])
+        if st.button("CRIAR CONTA"):
+            status = "Pendente" if tipo == "Cuidador" else "Ativo"
+            db.usuarios.insert_one({"nome": n, "usuario": nu, "senha": np, "endereco": addr, "tipo": tipo, "status": status, "dt": datetime.now()})
+            st.success("Cadastro realizado! Aguarde aprovação se for cuidador.")
+
+if not st.session_state.logado:
+    login()
     st.stop()
 
-# --- HUB INTERFACE ---
-user_doc = st.session_state.user_data
-is_admin = user_doc.get("tipo") == "Admin"
-tabs = st.tabs(["💡 Insights", "🧬 PetScan IA", "📍 Clínicas & Petshops", "🐕 Cuidadores"] + (["⚙️ Gestão Admin"] if is_admin else []))
+# --- DASHBOARD LOGIC ---
+user = st.session_state.user_data
 
-# ABA 2: PETSCAN
-with tabs[1]:
-    st.subheader("🧬 Diagnóstico Biométrico por Imagem")
-    up = st.file_uploader("Submeter Foto do Pet", type=['jpg', 'png', 'heic'])
-    if up and st.button("EXECUTAR SCAN", use_container_width=True):
-        img = ImageOps.exif_transpose(Image.open(up)).convert("RGB")
-        st.image(img, width=400, caption="Amostra Biométrica")
-        resultado = call_ia("Analise raça, BCS 1-9 e saúde.", img=img, speed_mode=True)
-        st.markdown(f"<div class='elite-card'><h3>📝 Laudo IA</h3>{resultado}</div>", unsafe_allow_html=True)
-        st.markdown("### 📊 Guia de Referência: Condição Corporal")
+# SIDEBAR
+with st.sidebar:
+    st.markdown(f"### 👤 {user['nome']}")
+    st.caption(f"Perfil: {user['tipo']} | Status: {user.get('status', 'Ativo')}")
+    if st.button("SAIR"):
+        st.session_state.logado = False
+        st.rerun()
+
+# ---------------- ADMIN ----------------
+if user['tipo'] == "Admin":
+    st.title("⚙️ Painel de Governança")
+    pendentes = list(db.usuarios.find({"status": "Pendente"}))
+    st.subheader(f"Aprovações Pendentes ({len(pendentes)})")
+    for p in pendentes:
+        with st.container():
+            c1, c2 = st.columns([3, 1])
+            c1.write(f"**{p['nome']}** solicita acesso como Cuidador.")
+            if c2.button("APROVAR", key=p['usuario']):
+                db.usuarios.update_one({"usuario": p['usuario']}, {"$set": {"status": "Ativo"}})
+                st.rerun()
+    st.divider()
+    st.subheader("Todos os Usuários")
+    st.dataframe(pd.DataFrame(list(db.usuarios.find({}, {"senha": 0}))), use_container_width=True)
+
+# ---------------- CUIDADOR ----------------
+elif user['tipo'] == "Cuidador":
+    if user.get('status') == "Pendente":
+        st.warning("Sua conta está em análise. O administrador aprovará seu acesso em breve.")
+    else:
+        st.title("🐕 Painel do Cuidador")
+        tab_req, tab_chat = st.tabs(["📋 Pedidos de Contratação", "💬 Meus Chats"])
         
-        
+        with tab_req:
+            # Lógica para mostrar pedidos (seria uma nova collection 'pedidos')
+            st.info("Aguardando novas solicitações de tutores próximos.")
+            
+        with tab_chat:
+            st.subheader("Mensagens Recebidas")
+            chats = list(db.mensagens.find({"receiver_id": user['usuario']}).sort("dt", -1))
+            if not chats:
+                st.write("Nenhuma mensagem por enquanto.")
+            for msg in chats:
+                st.markdown(f"<div class='elite-card'><b>De: {msg['sender_id']}</b><br>{msg['texto']}<br><small>{msg['dt'].strftime('%H:%M')}</small></div>", unsafe_allow_html=True)
+
+# ---------------- TUTOR (NORMAL) ----------------
+elif user['tipo'] == "Tutor":
+    t_insights, t_scan, t_vets, t_care, t_chats = st.tabs(["💡 Insights", "🧬 PetScan", "📍 Clínicas & Mapas", "🤝 Cuidadores", "💬 Chats"])
+
+    with t_insights:
+        st.markdown("### Dicas de IA")
+        res = call_ia("4 dicas rápidas de saúde pet para hoje.")
+        st.write(res)
+
+    with t_scan:
+        st.subheader("🧬 Diagnóstico Biométrico")
+        up = st.file_uploader("Foto do Pet", type=['jpg', 'png'])
+        if up and st.button("EXECUTAR SCAN"):
+            img = ImageOps.exif_transpose(Image.open(up)).convert("RGB")
+            st.image(img, width=300)
+            res = call_ia("Analise BCS e saúde desta foto.", img=img)
+            st.markdown(f"<div class='elite-card'>{res}</div>", unsafe_allow_html=True)
+            st.markdown("---")
+            st.markdown("### 📊 Guia de Referência: Condição Corporal")
+            
 
 [Image of a Body Condition Score chart for dogs and cats]
 
 
-# ABA 3: LOCALIZAR VETERINÁRIOS & PETSHOPS (GOOGLE MAPS ELITE LOOK)
-with tabs[2]:
-    st.subheader("📍 Mapa de Saúde e Bem-Estar Animal")
-    
-    # Captura GPS Real
-    if JS_DISPONIVEL:
-        loc = streamlit_js_eval(data_of_interest='location', key='get_location')
-        if loc:
-            st.session_state.lat_long = f"{loc['coords']['latitude']}, {loc['coords']['longitude']}"
-    
-    # Barra de Pesquisa (Fundo Marrom)
-    col_search, col_gps = st.columns([4, 1])
-    search_query = col_search.text_input("Pesquisar Veterinários, Petshops ou Tosadores...", placeholder="Ex: Veterinários 24h próximos")
-    
-    if col_gps.button("📍 GPS REAL"):
-        st.success("Coordenadas GPS sincronizadas com sucesso.")
+    with t_vets:
+        st.subheader("📍 Localizador de Saúde Animal")
+        search = st.text_input("Pesquisar Veterinários, Petshops ou Tosadores...")
+        if search:
+            with st.spinner("Mapeando estabelecimentos..."):
+                prompt = f"Liste 3 locais de {search} próximos a {user['endereco']}. Retorne NOME|NOTA|AVAL|PROS|CONTRAS"
+                res = call_ia(prompt)
+                for line in res.split('\n'):
+                    if '|' in line:
+                        d = line.split('|')
+                        st.markdown(f"""
+                        <div class='elite-card'>
+                            <div style='display:flex; justify-content:space-between;'>
+                                <b>🏥 {d[0]}</b> <span class='rating-badge'>⭐ {d[1]}</span>
+                            </div>
+                            <small>{d[2]}</small><br>
+                            <p class='pros'>✅ {d[3]}</p>
+                            <p class='contras'>❌ {d[4]}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                st.map(pd.DataFrame({'lat': [-23.55], 'lon': [-46.63]})) # Exemplo estático para visual
 
-    loc_search = st.session_state.lat_long if not search_query else search_query
+    with t_care:
+        st.subheader("🤝 Contrate um Cuidador")
+        cuidadores = list(db.usuarios.find({"tipo": "Cuidador", "status": "Ativo"}))
+        for c in cuidadores:
+            with st.container():
+                st.markdown(f"<div class='elite-card'><b>{c['nome']}</b><br>📍 {c['endereco']}</div>", unsafe_allow_html=True)
+                msg_txt = st.text_input("Mensagem inicial", key=f"msg_{c['usuario']}")
+                if st.button("INICIAR CHAT", key=f"btn_{c['usuario']}"):
+                    db.mensagens.insert_one({
+                        "sender_id": user['usuario'],
+                        "receiver_id": c['usuario'],
+                        "texto": msg_txt,
+                        "dt": datetime.now()
+                    })
+                    st.success("Mensagem enviada!")
 
-    if loc_search:
-        with st.spinner("IA mapeando estabelecimentos de elite..."):
-            prompt_map = f"""Com base em {loc_search}, liste os 5 melhores estabelecimentos de: 
-            Veterinária, Petshop ou Tosa. Retorne exatamente: 
-            NOME|LAT|LON|NOTA_MEDIA|ENDERECO|PROS|CONTRAS"""
-            
-            res_v = call_ia(prompt_map, speed_mode=True)
-            if res_v:
-                map_data = []
-                for v in [l for l in res_v.split('\n') if '|' in l]:
-                    d = v.split('|')
-                    if len(d) >= 7:
-                        map_data.append({'lat': float(d[1]), 'lon': float(d[2]), 'name': d[0]})
-                        
-                        # Card de Detalhes após seleção
-                        with st.container():
-                            st.markdown(f"""
-                            <div class='elite-card'>
-                                <div style='display:flex; justify-content:space-between; align-items:center;'>
-                                    <span style='font-size:1.2rem; font-weight:800;'>🏥 {d[0]}</span>
-                                    <span class='rating-badge'>⭐ {d[3]}</span>
-                                </div>
-                                <p style='color:#888; font-size:0.9rem; margin-top:8px;'>📍 {d[4]}</p>
-                                <hr style='border: 0.1px solid #3e2723;'>
-                                <p class='pros'><b>✅ Ponto Positivo:</b> {d[5]}</p>
-                                <p class='contras'><b>❌ Ponto Negativo:</b> {d[6]}</p>
-                            </div>""", unsafe_allow_html=True)
-                
-                # Exibição do Mapa
-                if map_data:
-                    st.map(pd.DataFrame(map_data), zoom=14)
-
-# ABA 5: GESTÃO ADMIN
-if is_admin:
-    with tabs[-1]:
-        st.subheader("⚙️ Gestão Admin")
-        users = list(db.usuarios.find())
-        for u in users:
-            c1, c2, c3, c4 = st.columns([2,1,1,1])
-            c1.write(f"**{u['nome']}** (@{u['usuario']})")
-            c2.write(f"`{u.get('tipo', 'User')}`")
-            status = u.get("status", "Ativo")
-            c3.markdown(f"<span class='status-active'>{status}</span>", unsafe_allow_html=True)
-            if c4.button("SUSPENDER", key=u['usuario']):
-                new_status = "Inativo" if status != "Inativo" else "Ativo"
-                db.usuarios.update_one({"usuario": u['usuario']}, {"$set": {"status": new_status}})
-                st.rerun()
-
-with st.sidebar:
-    st.write(f"### 👤 {user_doc['nome']}")
-    if st.button("LOGOUT", use_container_width=True):
-        st.session_state.logado = False
-        st.rerun()
+    with t_chats:
+        st.subheader("Minhas Conversas")
+        minhas_mensagens = list(db.mensagens.find({"sender_id": user['usuario']}).sort("dt", -1))
+        for m in minhas_mensagens:
+            st.markdown(f"<div class='elite-card'><b>Para: {m['receiver_id']}</b><br>{m['texto']}</div>", unsafe_allow_html=True)
