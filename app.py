@@ -140,34 +140,46 @@ st.markdown("""
         background-color: #4e342e !important; 
     }
 
-    /* --- CORREÇÃO AVANÇADA: CALENDÁRIO (DATE INPUT) --- */
-    /* Container Principal do Calendário */
-    div[data-baseweb="calendar"] {
-        background-color: #2b1d16 !important; 
-        color: #ffffff !important;
-        border: 1px solid #4e342e !important;
-    }
-    
-    /* Garante que o container do popover do calendário seja marrom */
-    div[data-baseweb="popover"] > div, 
-    div[data-baseweb="popover"] > div > div {
+    /* --- CORREÇÃO FINAL: CALENDÁRIO (DATE INPUT) --- */
+    /* Container principal do popover do calendário */
+    div[data-baseweb="popover"] > div {
         background-color: #2b1d16 !important;
     }
 
-    /* Textos do Cabeçalho (Mês, Ano) e Setas */
-    div[data-baseweb="calendar"] div, 
-    div[data-baseweb="calendar"] button {
+    /* O Calendário em si */
+    div[data-baseweb="calendar"] {
+        background-color: #2b1d16 !important;
         color: #ffffff !important;
     }
     
-    /* Fundo dos dias e botões internos transparente para pegar o marrom do container */
-    div[data-baseweb="calendar"] button {
-        background-color: transparent !important;
+    /* Cabeçalho do calendário (Mês/Ano e Setas) */
+    div[data-baseweb="calendar"] div[role="button"],
+    div[data-baseweb="calendar"] div[aria-label] {
+        color: #ffffff !important;
     }
     
-    /* Hover nos dias */
+    /* Botões dos dias (Grade) - Remove fundo branco padrão */
+    div[data-baseweb="calendar"] button {
+        background-color: transparent !important;
+        color: #ffffff !important;
+    }
+    
+    /* Hover no dia */
     div[data-baseweb="calendar"] button:hover {
         background-color: #3e2723 !important;
+    }
+    
+    /* Dia Selecionado */
+    div[data-baseweb="calendar"] button[aria-selected="true"] {
+        background-color: #4e342e !important;
+        border: 1px solid #ffffff !important;
+        color: #ffffff !important;
+    }
+    
+    /* Ícones SVG (Setas esquerda/direita) */
+    div[data-baseweb="calendar"] svg {
+        fill: #ffffff !important;
+        color: #ffffff !important;
     }
 
     /* --- CORREÇÃO: FILE UPLOADER --- */
@@ -490,7 +502,11 @@ elif user_data['tipo'] == "Tutor":
         """)
         # Diagrama para contexto clínico
         st.markdown("""
-                """)
+        
+
+[Image of body condition score chart for dogs and cats]
+
+        """)
 
     with t_cuid:
         cuidadores = list(db.usuarios.find({"tipo": "Cuidador"})) if db is not None else []
