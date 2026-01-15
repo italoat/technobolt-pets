@@ -167,8 +167,12 @@ st.markdown("""
         border-color: #ffffff !important;
     }
 
-    /* BOTÕES GERAIS */
-    .stButton>button, button[kind="primary"] {
+    /* BOTÕES GERAIS E ESPECÍFICOS (Download e Form Submit) */
+    .stButton > button, 
+    .stDownloadButton > button,
+    [data-testid="stFormSubmitButton"] > button,
+    button[kind="primary"], 
+    button[kind="secondary"] {
         background-color: #3e2723 !important; 
         color: #ffffff !important;
         border: 1px solid #4b3621 !important; 
@@ -177,7 +181,14 @@ st.markdown("""
         transition: 0.3s ease;
         width: 100% !important;
     }
-    .stButton>button:hover { background-color: #4b3621 !important; border-color: #ffffff !important; color: white !important; }
+    
+    .stButton > button:hover, 
+    .stDownloadButton > button:hover,
+    [data-testid="stFormSubmitButton"] > button:hover { 
+        background-color: #4b3621 !important; 
+        border-color: #ffffff !important; 
+        color: white !important; 
+    }
 
     /* CARDS E CHAT */
     .elite-card { background: #0d0d0d; border: 1px solid #3e2723; border-radius: 20px; padding: 25px; margin-bottom: 15px; }
