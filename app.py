@@ -87,6 +87,20 @@ st.markdown("""
         color: #ffffff !important;
     }
 
+    /* --- CORREÇÃO: FILE UPLOADER (TIROU O BRANCO) --- */
+    [data-testid="stFileUploader"] {
+        background-color: #1e110f !important;
+        padding: 15px;
+        border-radius: 10px;
+        border: 1px solid #4e342e;
+    }
+    [data-testid="stFileUploader"] section {
+        background-color: #2b1d16 !important;
+    }
+    [data-testid="stFileUploader"] span {
+        color: #ffffff !important;
+    }
+
     /* --- AJUSTE: DROPDOWN LIST (SUSPENSA) --- */
     div[data-baseweb="popover"], div[role="listbox"] {
         background-color: #2b1d16 !important; /* Marrom Coffee */
@@ -153,8 +167,6 @@ def create_pdf_report(pet_name, especie, modo, sintomas, laudo):
     pdf.set_font('Helvetica', '', 11)
     clean_text = laudo.replace('**', '').replace('###', '').replace('*', '-')
     pdf.multi_cell(0, 8, sanitize_pdf_text(clean_text))
-    # --- CORREÇÃO APLICADA AQUI ---
-    # Removemos o .encode() pois o objeto já é bytes/bytearray
     return bytes(pdf.output(dest='S'))
 
 # --- AI CORE ENGINE ---
@@ -191,7 +203,6 @@ if not st.session_state.logado:
     with t_in:
         u, p = st.text_input("Usuário"), st.text_input("Senha", type="password")
         if st.button("ACESSAR HUB"):
-            # CORREÇÃO: if db is not None
             if db is not None:
                 user = db.usuarios.find_one({"usuario": u, "senha": p})
                 if user:
@@ -207,7 +218,6 @@ if not st.session_state.logado:
         n, nu, np = st.text_input("Nome Completo"), st.text_input("User ID").lower(), st.text_input("Password", type="password")
         tipo = st.selectbox("Perfil", ["Tutor", "Cuidador", "Admin"])
         if st.button("SOLICITAR ACESSO"):
-            # CORREÇÃO: if db is not None
             if db is not None:
                 if db.usuarios.find_one({"usuario": nu}):
                     st.warning("Usuário já existe.")
@@ -235,7 +245,6 @@ with st.sidebar:
         
     st.divider()
     cur_pet = None
-    # CORREÇÃO: if db is not None
     if user_data['tipo'] == "Tutor" and db is not None:
         pets = list(db.pets.find({"owner_id": user_data['usuario']}))
         if pets:
@@ -262,13 +271,11 @@ if user_data['tipo'] == "Admin":
 
     with t_audit:
         st.subheader("Auditoria de Mensagens")
-        # CORREÇÃO: if db is not None
         logs = list(db.mensagens.find().sort("dt", -1)) if db is not None else []
         if logs: st.dataframe(pd.DataFrame(logs).astype(str), use_container_width=True)
         else: st.info("Sem logs disponíveis.")
 
     with t_control:
-        # CORREÇÃO: if db is not None
         usuarios = list(db.usuarios.find()) if db is not None else []
         if usuarios:
             df_users = pd.DataFrame(usuarios)
@@ -295,7 +302,6 @@ elif user_data['tipo'] == "Cuidador":
                 st.rerun()
 
     with t_agend:
-        # CORREÇÃO: if db is not None
         pedidos = list(db.agendamentos.find({"cuidador_id": user_data['usuario'], "status": "Pendente"})) if db is not None else []
         if not pedidos: st.write("Nenhum pedido pendente.")
         for p in pedidos:
@@ -305,7 +311,6 @@ elif user_data['tipo'] == "Cuidador":
                 st.rerun()
 
     with t_chat:
-        # CORREÇÃO: if db is not None
         chats = db.mensagens.distinct("sender_id", {"receiver_id": user_data['usuario']}) if db is not None else []
         for tid in chats:
             with st.expander(f"Conversa com {tid}"):
@@ -367,15 +372,13 @@ elif user_data['tipo'] == "Tutor":
         
         *[Referência Visual: Consulte seu veterinário para exames presenciais]*
         """)
-        # Diagram added based on clinical reference context
-        st.markdown("
+        # Diagrama adicionado e corrigido para aspas triplas para evitar SyntaxError
+        st.markdown("""
 
-[Image of body condition score chart for dogs and cats]
-")
+                """)
 
 
     with t_cuid:
-        # CORREÇÃO: if db is not None
         cuidadores = list(db.usuarios.find({"tipo": "Cuidador"})) if db is not None else []
         for c in cuidadores:
             with st.container():
@@ -395,7 +398,6 @@ elif user_data['tipo'] == "Tutor":
                             st.success("Solicitado!")
 
     with t_chat:
-        # CORREÇÃO: if db is not None
         chats = db.mensagens.distinct("receiver_id", {"sender_id": user_data['usuario']}) if db is not None else []
         for cid in chats:
             with st.expander(f"Conversa com {cid}"):
