@@ -8,6 +8,7 @@ from datetime import datetime
 from pymongo import MongoClient
 import pillow_heif
 import random
+from fpdf import FPDF # Nova dependência para o PDF
 
 # --- CONFIGURAÇÃO DE ENGENHARIA SÊNIOR ---
 pillow_heif.register_heif_opener()
@@ -18,7 +19,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- DATABASE ENGINE (SISTEMA DE SEGREDOS) ---
+# --- DATABASE ENGINE ---
 @st.cache_resource
 def iniciar_conexao():
     try:
@@ -35,36 +36,99 @@ def iniciar_conexao():
 
 db = iniciar_conexao()
 
-# --- DESIGN SYSTEM: OBSIDIAN & CHOCOLATE ---
+# --- DESIGN SYSTEM: OBSIDIAN & CHOCOLATE (CORREÇÃO DE VISIBILIDADE) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
     
-    [data-testid="stSidebar"], .stApp, [data-testid="stSidebarContent"], [data-testid="stHeader"] { 
+    /* Global & Sidebar Dark Mode */
+    [data-testid="stSidebar"], .stApp, [data-testid="stSidebarContent"] { 
         background-color: #000000 !important; 
         color: #ffffff !important; 
     }
+    
     * { font-family: 'Plus Jakarta Sans', sans-serif; color: #ffffff !important; }
 
-    .stTabs [data-baseweb="tab-list"] { background-color: #000000 !important; border-bottom: 2px solid #3e2723 !important; }
-    .stTabs [data-baseweb="tab"] {
-        background-color: #0a0a0a !important; color: #888888 !important;
-        border: 1px solid #1a1a1a !important; border-radius: 8px 8px 0 0;
+    /* CORREÇÃO DO MENU SUPERIOR (TABS) */
+    .stTabs [data-baseweb="tab-list"] {
+        background-color: #000000 !important;
+        border-bottom: 2px solid #3e2723 !important;
+        gap: 10px;
+        padding: 5px;
     }
-    .stTabs [aria-selected="true"] { background-color: #3e2723 !important; color: #ffffff !important; }
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        background-color: #0d0d0d !important;
+        border: 1px solid #1a1a1a !important;
+        border-radius: 10px 10px 0 0;
+        color: #888888 !important;
+        padding: 10px 20px;
+        font-weight: 600;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #3e2723 !important;
+        color: #ffffff !important;
+        border-color: #3e2723 !important;
+    }
 
+    /* Forms e Inputs */
     input, textarea, [data-baseweb="select"] > div { 
         background-color: #3e2723 !important; border: 1px solid #4b3621 !important; color: #ffffff !important;
     }
     .stButton>button {
         background-color: #3e2723 !important; border: 1px solid #4b3621 !important;
         border-radius: 12px !important; font-weight: 700 !important;
+        width: 100%;
     }
+    .stButton>button:hover { background-color: #4b3621 !important; border-color: #ffffff !important; }
+
+    /* Cards Elite */
     .elite-card { background: #0d0d0d; border: 1px solid #3e2723; border-radius: 20px; padding: 20px; margin-bottom: 15px; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- AI CORE ENGINE (FLEXIBILIDADE DE ESPÉCIES) ---
+# --- GERADOR DE RELATÓRIO PDF (VISUAL INCRÍVEL) ---
+class PetReport(FPDF):
+    def header(self):
+        self.set_fill_color(62, 39, 35) # Marrom Technobolt
+        self.rect(0, 0, 210, 40, 'F')
+        self.set_font('Helvetica', 'B', 24)
+        self.set_text_color(255, 255, 255)
+        self.cell(0, 20, 'TECHNOBOLT', ln=True, align='C')
+        self.set_font('Helvetica', 'I', 12)
+        self.cell(0, 10, 'Laudo de Inteligencia Veterinaria Digital', ln=True, align='C')
+        self.ln(20)
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_font('Helvetica', 'I', 8)
+        self.set_text_color(128, 128, 128)
+        self.cell(0, 10, f'Pagina {self.page_no()} | Gerado em {datetime.now().strftime("%d/%m/%Y")}', align='C')
+
+def gerar_pdf(pet_nome, especie, modo, sintomas, laudo):
+    pdf = PetReport()
+    pdf.add_page()
+    pdf.set_font('Helvetica', 'B', 16)
+    pdf.set_text_color(62, 39, 35)
+    pdf.cell(0, 10, f"Paciente: {pet_nome} ({especie})", ln=True)
+    pdf.ln(5)
+    
+    pdf.set_font('Helvetica', 'B', 12)
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(0, 10, f"Tipo de Analise: {modo}", ln=True)
+    pdf.multi_cell(0, 10, f"Sintomas Observados: {sintomas if sintomas else 'Nenhum descrito'}")
+    pdf.ln(5)
+    
+    pdf.set_fill_color(245, 245, 245)
+    pdf.set_font('Helvetica', 'B', 14)
+    pdf.cell(0, 12, "RESULTADO DO SCAN IA", ln=True, fill=True, align='C')
+    pdf.ln(5)
+    pdf.set_font('Helvetica', '', 11)
+    pdf.multi_cell(0, 8, laudo.replace('**', '').replace('#', '')) # Limpa markdown simples
+    
+    return pdf.output()
+
+# --- AI CORE ENGINE ---
 def call_ia(prompt, img=None):
     chaves = [st.secrets.get(f"GEMINI_CHAVE_{i}") for i in range(1, 8)]
     chaves = [k for k in chaves if k]
@@ -86,7 +150,8 @@ if not st.session_state.logado:
     st.markdown("<h1 style='text-align: center;'>🐾 TECHNOBOLT PETS</h1>", unsafe_allow_html=True)
     t_in, t_reg = st.tabs(["🔐 Acesso", "📝 Registro"])
     with t_in:
-        u, p = st.text_input("Usuário"), st.text_input("Senha", type="password")
+        u = st.text_input("Usuário")
+        p = st.text_input("Senha", type="password")
         if st.button("ACESSAR HUB"):
             user = db.usuarios.find_one({"usuario": u, "senha": p})
             if user:
@@ -118,12 +183,12 @@ with st.sidebar:
         
         with st.expander("➕ Adicionar Pet"):
             p_n = st.text_input("Nome do Animal")
-            p_e = st.text_input("Espécie (Cão, Gato, Calopsita, etc)")
+            p_e = st.text_input("Espécie (Cão, Gato, Ave, etc)")
             if st.button("Salvar Perfil"):
                 db.pets.insert_one({"owner_id": user_data['usuario'], "nome": p_n, "especie": p_e, "dt": datetime.now()})
                 st.rerun()
     st.divider()
-    if st.button("SAIR"):
+    if st.button("SAIR DO SISTEMA"):
         st.session_state.logado = False
         st.rerun()
 
@@ -166,29 +231,32 @@ elif user_data['tipo'] == "Tutor":
             if up and st.button("INICIAR ANÁLISE ESPECIALIZADA"):
                 img = ImageOps.exif_transpose(Image.open(up)).convert("RGB")
                 st.image(img, width=400)
-                prompt = f"""Atue como Veterinário PhD. Analise este {cur_pet['especie']} ({cur_pet['nome']}). 
-                Modo: {modo}. Sintomas relatados: {sintomas if sintomas else 'Nenhum sintoma descrito'}. 
-                Analise com base na anatomia específica desta espécie e dê recomendações."""
+                prompt = f"Veterinário PhD: Analise este {cur_pet['especie']} ({cur_pet['nome']}). Modo: {modo}. Sintomas: {sintomas if sintomas else 'Nenhum'}. Dê laudo estruturado."
                 res = call_ia(prompt, img=img)
+                st.session_state['ultimo_laudo'] = res
                 st.markdown(f"<div class='elite-card'>{res}</div>", unsafe_allow_html=True)
                 
-                # --- CORREÇÃO DA SINTAXE DAS IMAGENS ---
+                # Botão para Download do PDF
+                pdf_bytes = gerar_pdf(cur_pet['nome'], cur_pet['especie'], modo, sintomas, res)
+                st.download_button(
+                    label="📥 BAIXAR RELATÓRIO PDF (TECHNOBOLT)",
+                    data=pdf_bytes,
+                    file_name=f"Laudo_{cur_pet['nome']}_{datetime.now().strftime('%d%m%Y')}.pdf",
+                    mime="application/pdf"
+                )
+
                 if "BCS" in modo:
                     st.divider()
-                    st.markdown("""
-                    ### 📊 Guia de Referência: Condição Corporal
+                    st.markdown("### 📊 Guia de Referência: Condição Corporal")
                     
 
 [Image of a Body Condition Score chart for dogs and cats]
 
-                    """)
 
                 if "Fezes" in modo:
                     st.divider()
-                    st.markdown("""
-                    ### 📊 Guia de Referência: Saúde Digestiva
+                    st.markdown("### 📊 Guia de Referência: Saúde Digestiva")
                     
-                    """)
 
     with t_map:
         st.subheader("📍 Localizador")
@@ -208,7 +276,7 @@ elif user_data['tipo'] == "Tutor":
                 db.mensagens.insert_one({"sender_id": user_data['usuario'], "sender_addr": user_data['endereco'], "receiver_id": c['usuario'], "texto": txt, "dt": datetime.now()})
                 st.success("Enviado!")
 
-    with t_msg:
+    with t_chats:
         st.subheader("Histórico")
         msgs = list(db.mensagens.find({"sender_id": user_data['usuario']}).sort("dt", -1))
         for m in msgs:
