@@ -36,16 +36,15 @@ def iniciar_conexao():
 
 db = iniciar_conexao()
 
-# --- DESIGN SYSTEM: OBSIDIAN & DEEP COCOA (REFINAMENTO SÊNIOR) ---
+# --- DESIGN SYSTEM: OBSIDIAN & DEEP COCOA (UI FIX SÊNIOR) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
     
-    /* Override Global - Obsidian Theme */
+    /* RESET GLOBAL E SIDEBAR */
     [data-testid="stSidebar"], .stApp, [data-testid="stHeader"], [data-testid="stSidebarContent"], .main { 
         background-color: #000000 !important; color: #ffffff !important; 
     }
-    
     * { font-family: 'Plus Jakarta Sans', sans-serif; color: #ffffff !important; }
 
     /* MENU SUPERIOR (TABS) */
@@ -53,7 +52,6 @@ st.markdown("""
         background-color: #000000 !important;
         border-bottom: 2px solid #3e2723 !important;
         gap: 15px !important;
-        padding-top: 10px !important;
     }
     .stTabs [data-baseweb="tab"] {
         height: 50px !important; background-color: #0d0d0d !important;
@@ -64,22 +62,36 @@ st.markdown("""
         background-color: #3e2723 !important; color: #ffffff !important; border-color: #3e2723 !important;
     }
 
-    /* FIX: ELIMINAÇÃO DE FUNDOS BRANCOS EM FORMS E BOTÕES INTERNOS */
-    [data-testid="stForm"], .stForm, div[role="presentation"], .st-emotion-cache-12w0qpk {
+    /* ELIMINAÇÃO DE FUNDOS BRANCOS EM FORMS E INPUTS */
+    div[data-testid="stForm"], .stForm {
         background-color: #0d0d0d !important;
         border: 1px solid #3e2723 !important;
+        padding: 20px !important;
         border-radius: 15px !important;
     }
     
-    /* Corrigindo inputs brancos dentro de formulários */
-    input, textarea, [data-baseweb="select"] > div, div[data-baseweb="input"], .stNumberInput input { 
+    /* Input, Textarea e Selectboxes */
+    input, textarea, [data-baseweb="select"] > div, div[data-baseweb="input"], .stSelectbox div { 
         background-color: #1a1a1a !important; 
         border: 1px solid #4b3621 !important; 
         color: #ffffff !important;
     }
 
-    /* Botões Elite - Prevenindo Reset Branco */
-    .stButton>button, div[data-testid="stForm"] button {
+    /* Ajuste para Listas Suspensas (Popovers) */
+    div[data-baseweb="popover"], div[role="listbox"] {
+        background-color: #1a1a1a !important;
+        color: #ffffff !important;
+    }
+    div[role="option"] {
+        color: #ffffff !important;
+        background-color: transparent !important;
+    }
+    div[role="option"]:hover {
+        background-color: #3e2723 !important;
+    }
+
+    /* Botões - Forçando visual Obsidian e removendo bordas brancas de foco */
+    .stButton>button, button[kind="secondary"], button[kind="primary"] {
         background-color: #3e2723 !important; 
         color: #ffffff !important;
         border: 1px solid #4b3621 !important; 
@@ -88,9 +100,10 @@ st.markdown("""
         transition: 0.3s ease;
         width: 100% !important;
     }
-    .stButton>button:hover { background-color: #4b3621 !important; border-color: #ffffff !important; }
+    .stButton>button:hover { background-color: #4b3621 !important; border-color: #ffffff !important; color: white !important; }
+    .stButton>button:active, .stButton>button:focus { color: white !important; border-color: #3e2723 !important; }
 
-    /* Cards, Instruções e Chat */
+    /* Cards e Mensagens */
     .elite-card { background: #0d0d0d; border: 1px solid #3e2723; border-radius: 20px; padding: 25px; margin-bottom: 15px; }
     .instruction-box { background: linear-gradient(145deg, #1a0f0d, #000000); border-left: 5px solid #3e2723; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
     .bubble { padding: 12px; border-radius: 15px; max-width: 80%; line-height: 1.4; margin-bottom: 5px; }
@@ -99,10 +112,10 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- GERADOR DE RELATÓRIO PDF (ESTÉTICA TECHNOBOLT) ---
+# --- GERADOR DE RELATÓRIO PDF ---
 class TechnoboltPDF(FPDF):
     def header(self):
-        self.set_fill_color(62, 39, 35) # #3e2723
+        self.set_fill_color(62, 39, 35) 
         self.rect(0, 0, 210, 45, 'F')
         self.set_y(15)
         self.set_font('Helvetica', 'B', 28)
@@ -147,7 +160,6 @@ def create_pdf_report(pet_name, especie, modo, sintomas, laudo):
 def call_ia(prompt, img=None):
     chaves = [st.secrets.get(f"GEMINI_CHAVE_{i}") for i in range(1, 8)]
     chaves = [k for k in chaves if k]
-    if not chaves: return "Erro: Chaves de API ausentes."
     motores = ["models/gemini-2.0-flash", "models/gemini-flash-latest"]
     genai.configure(api_key=random.choice(chaves))
     for motor in motores:
@@ -207,56 +219,49 @@ with st.sidebar:
 
 # ---------------- WORKFLOWS ----------------
 
-# 1. ADMIN MASTER (GOVERNANÇA TOTAL)
+# 1. ADMIN MASTER (REESTRUTURADO)
 if user_data['tipo'] == "Admin":
-    t_home, t_edit, t_audit_ag, t_audit_ch = st.tabs(["🏠 Instruções", "⚙️ Gestão de Usuários", "📅 Auditoria de Agendas", "💬 Auditoria de Chats"])
+    t_inst, t_audit, t_control = st.tabs(["🏠 Instruções", "💬 Auditoria de Chats", "⚙️ Controles Master"])
     
-    with t_home:
-        st.markdown("""<div class='instruction-box'><b>Governança Admin Technobolt:</b><br>
-        - <b>Gestão:</b> Edição direta da base de usuários.<br>
-        - <b>Agendas:</b> Monitoramento de todos os pedidos de serviço.<br>
-        - <b>Chats:</b> Auditoria completa de logs de mensagens entre usuários.</div>""", unsafe_allow_html=True)
-    
-    with t_edit:
-        st.subheader("⚙️ Edição Master de Usuários")
-        usuarios_lista = list(db.usuarios.find())
-        if usuarios_lista:
-            df_users = pd.DataFrame(usuarios_lista)
-            new_df = st.data_editor(df_users, use_container_width=True)
-            if st.button("SALVAR ALTERAÇÕES GLOBAIS"):
-                for index, row in new_df.iterrows():
+    with t_inst:
+        st.markdown("""<div class='instruction-box'><b>Painel de Governança Admin:</b><br>
+        1. <b>Instruções:</b> Guia de uso do sistema corporativo.<br>
+        2. <b>Auditoria de Chats:</b> Monitoramento de integridade e logs de mensagens entre usuários.<br>
+        3. <b>Controles Master:</b> Edição direta da base de usuários via editor de dados.</div>""", unsafe_allow_html=True)
+
+    with t_audit:
+        st.subheader("Histórico Global de Mensagens")
+        logs = list(db.mensagens.find().sort("dt", -1))
+        if logs:
+            st.dataframe(pd.DataFrame(logs), use_container_width=True)
+        else: st.info("Sem logs de conversas.")
+
+    with t_control:
+        st.subheader("Gestão de Usuários e Dados")
+        usuarios = list(db.usuarios.find())
+        if usuarios:
+            df_users = pd.DataFrame(usuarios)
+            edited_df = st.data_editor(df_users, use_container_width=True)
+            if st.button("SINCRONIZAR ALTERAÇÕES"):
+                for index, row in edited_df.iterrows():
                     db.usuarios.replace_one({"_id": row["_id"]}, row.to_dict())
-                st.success("Database atualizada!")
-        else: st.info("Nenhum usuário cadastrado.")
-
-    with t_audit_ag:
-        st.subheader("📅 Relatório Global de Agendamentos")
-        all_agendas = list(db.agendamentos.find())
-        if all_agendas:
-            st.dataframe(pd.DataFrame(all_agendas), use_container_width=True)
-        else: st.info("Nenhum agendamento registrado no sistema.")
-
-    with t_audit_ch:
-        st.subheader("💬 Logs de Conversas (Auditoria)")
-        all_chats = list(db.mensagens.find())
-        if all_chats:
-            st.dataframe(pd.DataFrame(all_chats).sort_values(by="dt", ascending=False), use_container_width=True)
-        else: st.info("Nenhuma conversa registrada ainda.")
+                st.success("Base de dados atualizada!")
+        else: st.info("Nenhum usuário para gerenciar.")
 
 # 2. CUIDADOR MASTER
 elif user_data['tipo'] == "Cuidador":
     t_home, t_edit, t_agend, t_chat = st.tabs(["🏠 Instruções", "👤 Meus Dados", "📅 Agendamentos", "💬 Mensagens"])
     
     with t_home:
-        st.markdown("<div class='instruction-box'><b>Painel do Cuidador:</b> Configure seus dados profissionais e gerencie solicitações de tutores.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='instruction-box'><b>Olá Cuidador!</b> Gerencie seu perfil e solicitações abaixo.</div>", unsafe_allow_html=True)
 
     with t_edit:
         st.subheader("Configurar Perfil Profissional")
         with st.form("perfil_form"):
             new_n = st.text_input("Nome", value=user_data['nome'])
             new_a = st.text_input("Endereço", value=user_data.get('endereco', ''))
-            new_p = st.text_area("Animais/Portes que cuida", value=user_data.get('perfil_cuidado', ''))
-            new_v = st.number_input("Valor da Diária (R$)", value=user_data.get('valores', 0))
+            new_p = st.text_area("Perfil de Cuidado", value=user_data.get('perfil_cuidado', ''))
+            new_v = st.number_input("Valor da Diária", value=user_data.get('valores', 0))
             if st.form_submit_button("ATUALIZAR DADOS"):
                 db.usuarios.update_one({"usuario": user_data['usuario']}, {"$set": {"nome": new_n, "endereco": new_a, "perfil_cuidado": new_p, "valores": new_v}})
                 st.rerun()
@@ -264,7 +269,7 @@ elif user_data['tipo'] == "Cuidador":
     with t_agend:
         pedidos = list(db.agendamentos.find({"cuidador_id": user_data['usuario'], "status": "Pendente"}))
         for p in pedidos:
-            st.write(f"📅 **Solicitação de {p['tutor_id']}** para o dia {p['data']}")
+            st.write(f"📅 **Solicitação de {p['tutor_id']}** para {p['data']}")
             c1, c2 = st.columns(2)
             if c1.button("APROVAR", key=f"ap_{p['_id']}"):
                 db.agendamentos.update_one({"_id": p['_id']}, {"$set": {"status": "Aprovado"}})
@@ -291,7 +296,7 @@ elif user_data['tipo'] == "Tutor":
     t_home, t_scan, t_cuid, t_chat = st.tabs(["🏠 Instruções", "🧬 PetScan IA", "🤝 Cuidadores", "💬 Chats"])
     
     with t_home:
-        st.markdown("<div class='instruction-box'><b>Painel do Tutor:</b> Realize análises biométricas e contrate os melhores cuidadores para seu pet.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='instruction-box'><b>Olá Tutor!</b> Use o PetScan e contrate cuidadores qualificados.</div>", unsafe_allow_html=True)
 
     with t_scan:
         st.subheader("🧬 Diagnóstico Biométrico Universal")
@@ -304,7 +309,7 @@ elif user_data['tipo'] == "Tutor":
             pdf_b = create_pdf_report(cur_pet['nome'] if cur_pet else "Pet", cur_pet['especie'] if cur_pet else "Agnostico", "Geral", "N/A", res)
             st.download_button("📥 BAIXAR PDF TECHNOBOLT", pdf_b, file_name="laudo.pdf", mime="application/pdf")
             
-            st.markdown("""### 📊 Guia de Referência Clínica""")
+            st.markdown("### 📊 Guia de Referência Clínica")
             
     with t_cuid:
         cuidadores = list(db.usuarios.find({"tipo": "Cuidador"}))
@@ -314,7 +319,7 @@ elif user_data['tipo'] == "Tutor":
                 <div class='elite-card'>
                     <h3>{c['nome']} {'⭐' * int(c.get('rating', 5))}</h3>
                     <p>📍 {c.get('endereco', '')} | 💰 R$ {c.get('valores', 0)}/dia</p>
-                    <p>🐾 {c.get('perfil_cuidado', 'Porte e espécies não informados')}</p>
+                    <p>🐾 {c.get('perfil_cuidado', 'Não detalhado')}</p>
                 </div>
                 """, unsafe_allow_html=True)
                 
@@ -326,7 +331,7 @@ elif user_data['tipo'] == "Tutor":
                             db.mensagens.insert_one({"sender_id": user_data['usuario'], "receiver_id": c['usuario'], "texto": msg_t, "dt": datetime.now(), "sender_addr": user_data.get('endereco')})
                             st.success("Enviado!")
                 with c2:
-                    with st.expander("📅 Agendar Data"):
+                    with st.expander("📅 Agendar"):
                         da = st.date_input("Escolha o dia", key=f"dt_{c['usuario']}")
                         if st.button("Solicitar", key=f"req_{c['usuario']}"):
                             db.agendamentos.insert_one({"tutor_id": user_data['usuario'], "cuidador_id": c['usuario'], "data": str(da), "status": "Pendente"})
