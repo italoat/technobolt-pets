@@ -41,6 +41,7 @@ st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
     
+    /* Reset Global */
     [data-testid="stSidebar"], .stApp, [data-testid="stHeader"], [data-testid="stSidebarContent"] { 
         background-color: #000000 !important; color: #ffffff !important; 
     }
@@ -55,29 +56,37 @@ st.markdown("""
         padding-top: 10px !important;
     }
     .stTabs [data-baseweb="tab"] {
-        height: 50px !important;
-        background-color: #0d0d0d !important;
-        border-radius: 12px 12px 0 0 !important;
-        color: #bbbbbb !important;
-        border: 1px solid #1a1a1a !important;
-        padding: 0 30px !important;
+        height: 50px !important; background-color: #0d0d0d !important;
+        border-radius: 12px 12px 0 0 !important; color: #bbbbbb !important;
+        border: 1px solid #1a1a1a !important; padding: 0 30px !important;
     }
     .stTabs [aria-selected="true"] {
-        background-color: #3e2723 !important;
+        background-color: #3e2723 !important; color: #ffffff !important; border-color: #3e2723 !important;
+    }
+
+    /* ELIMINAÇÃO DE FUNDOS BRANCOS EM FORMS E BOTÕES */
+    div[data-testid="stForm"], div.stForm {
+        background-color: #0d0d0d !important;
+        border: 1px solid #3e2723 !important;
+        padding: 20px !important;
+        border-radius: 15px !important;
+    }
+    
+    input, textarea, [data-baseweb="select"] > div, div[data-baseweb="input"] { 
+        background-color: #1a1a1a !important; 
+        border: 1px solid #4b3621 !important; 
         color: #ffffff !important;
-        border-color: #3e2723 !important;
     }
 
-    /* Forms e Inputs */
-    input, textarea, [data-baseweb="select"] > div { 
-        background-color: #3e2723 !important; border: 1px solid #4b3621 !important; color: #ffffff !important;
-    }
-
-    /* Botões Elite */
-    .stButton>button {
-        background-color: #3e2723 !important; color: #ffffff !important;
-        border: 1px solid #4b3621 !important; border-radius: 14px !important;
-        font-weight: 700 !important; transition: 0.3s ease;
+    /* Botões Dinâmicos (Evita fundo branco de sistema) */
+    .stButton>button, button[kind="secondary"], button[kind="primary"] {
+        background-color: #3e2723 !important; 
+        color: #ffffff !important;
+        border: 1px solid #4b3621 !important; 
+        border-radius: 14px !important;
+        font-weight: 700 !important; 
+        transition: 0.3s ease;
+        width: 100% !important;
     }
     .stButton>button:hover { background-color: #4b3621 !important; border-color: #ffffff !important; }
 
@@ -87,15 +96,15 @@ st.markdown("""
     
     /* CHAT DESIGN */
     .bubble { padding: 12px; border-radius: 15px; max-width: 80%; line-height: 1.4; margin-bottom: 5px; }
-    .sent { background-color: #3e2723; align-self: flex-end; color: white; border-bottom-right-radius: 2px; }
-    .received { background-color: #1a1a1a; align-self: flex-start; color: #bbbbbb; border-bottom-left-radius: 2px; }
+    .sent { background-color: #3e2723; align-self: flex-end; color: white; margin-left: auto; }
+    .received { background-color: #1a1a1a; align-self: flex-start; color: #bbbbbb; margin-right: auto; }
 </style>
 """, unsafe_allow_html=True)
 
 # --- GERADOR DE RELATÓRIO PDF (ESTÉTICA TECHNOBOLT) ---
 class TechnoboltPDF(FPDF):
     def header(self):
-        self.set_fill_color(62, 39, 35) # Marrom Technobolt (#3e2723)
+        self.set_fill_color(62, 39, 35) 
         self.rect(0, 0, 210, 45, 'F')
         self.set_y(15)
         self.set_font('Helvetica', 'B', 28)
@@ -166,7 +175,7 @@ if not st.session_state.logado:
                 st.rerun()
     with t_reg:
         n, nu, np = st.text_input("Nome Completo"), st.text_input("User ID").lower(), st.text_input("Password", type="password")
-        tipo = st.selectbox("Perfil", ["Tutor", "Cuidador"])
+        tipo = st.selectbox("Perfil", ["Tutor", "Cuidador", "Admin"])
         if st.button("SOLICITAR ACESSO"):
             db.usuarios.insert_one({"nome": n, "usuario": nu, "senha": np, "tipo": tipo, "status": "Ativo", "rating": 5.0, "rating_count": 0, "valores": 0})
             st.success("Conta criada!")
@@ -193,25 +202,47 @@ with st.sidebar:
         
         with st.expander("➕ Adicionar Pet"):
             p_n = st.text_input("Nome")
-            p_e = st.text_input("Espécie (Qualquer animal)")
+            p_e = st.text_input("Espécie")
             if st.button("Salvar Pet"):
                 db.pets.insert_one({"owner_id": user_data['usuario'], "nome": p_n, "especie": p_e})
                 st.rerun()
 
 # ---------------- WORKFLOWS ----------------
 
-# 1. ADMIN MASTER (EDIÇÃO TOTAL)
+# 1. ADMIN MASTER (GOVERNANÇA TOTAL)
 if user_data['tipo'] == "Admin":
-    t_home, t_edit = st.tabs(["🏠 Instruções", "⚙️ Edição Master"])
+    t_home, t_edit, t_audit_ag, t_audit_ch = st.tabs(["🏠 Instruções", "⚙️ Gestão de Usuários", "📅 Auditoria de Agendas", "💬 Auditoria de Chats"])
+    
     with t_home:
-        st.markdown("""<div class='instruction-box'><b>Admin Master:</b> Você pode editar qualquer dado de usuários diretamente na tabela.</div>""", unsafe_allow_html=True)
+        st.markdown("""<div class='instruction-box'><b>Centro de Comando Admin:</b><br>
+        1. <b>Gestão de Usuários:</b> Edite permissões, senhas e dados mestre.<br>
+        2. <b>Auditoria de Agendas:</b> Visualize todos os pedidos de cuidado do ecossistema.<br>
+        3. <b>Auditoria de Chats:</b> Monitore as interações entre usuários para garantir a segurança.</div>""", unsafe_allow_html=True)
+    
     with t_edit:
+        st.subheader("⚙️ Edição Master de Usuários")
         df_users = pd.DataFrame(list(db.usuarios.find()))
         new_df = st.data_editor(df_users, use_container_width=True)
         if st.button("SALVAR ALTERAÇÕES GLOBAIS"):
             for index, row in new_df.iterrows():
                 db.usuarios.replace_one({"_id": row["_id"]}, row.to_dict())
             st.success("Database atualizada!")
+
+    with t_audit_ag:
+        st.subheader("📅 Todos os Agendamentos do Hub")
+        all_agendas = pd.DataFrame(list(db.agendamentos.find()))
+        if not all_agendas.empty:
+            st.dataframe(all_agendas, use_container_width=True)
+        else:
+            st.info("Nenhum agendamento registrado.")
+
+    with t_audit_ch:
+        st.subheader("💬 Central de Monitoramento de Chats")
+        all_chats = pd.DataFrame(list(db.mensagens.find()))
+        if not all_chats.empty:
+            st.dataframe(all_chats.sort_values(by="dt", ascending=False), use_container_width=True)
+        else:
+            st.info("Nenhuma conversa registrada.")
 
 # 2. CUIDADOR MASTER
 elif user_data['tipo'] == "Cuidador":
@@ -274,12 +305,9 @@ elif user_data['tipo'] == "Tutor":
             pdf_b = create_pdf_report(cur_pet['nome'] if cur_pet else "Pet", cur_pet['especie'] if cur_pet else "Agnostico", "Geral", "N/A", res)
             st.download_button("📥 BAIXAR PDF TECHNOBOLT", pdf_b, file_name="laudo.pdf", mime="application/pdf")
             
-            # CORREÇÃO DA SINTAXE DO DIAGRAMA (Protegido em triple quotes)
             st.markdown("""### 📊 Guia de Referência Clínica""")
             st.markdown("""
-
-[Image of a Body Condition Score chart for dogs and cats]
-""")
+                        """)
 
     with t_cuid:
         cuidadores = list(db.usuarios.find({"tipo": "Cuidador"}))
