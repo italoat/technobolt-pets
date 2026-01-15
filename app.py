@@ -10,7 +10,7 @@ import pillow_heif
 import random
 from fpdf import FPDF
 
-# --- SETUP DE ENGENHARIA ---
+# --- SETUP DE ENGENHARIA SÊNIOR ---
 pillow_heif.register_heif_opener()
 st.set_page_config(
     page_title="TechnoBolt Pets Hub | Master Enterprise", 
@@ -36,7 +36,7 @@ def iniciar_conexao():
 
 db = iniciar_conexao()
 
-# --- DESIGN SYSTEM: OBSIDIAN & DEEP COCOA (VISIBILIDADE MÁXIMA) ---
+# --- DESIGN SYSTEM: OBSIDIAN & DEEP COCOA ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
@@ -47,7 +47,6 @@ st.markdown("""
     
     * { font-family: 'Plus Jakarta Sans', sans-serif; color: #ffffff !important; }
 
-    /* MENU SUPERIOR (TABS) - VISIBILIDADE CRÍTICA */
     .stTabs [data-baseweb="tab-list"] {
         background-color: #000000 !important;
         border-bottom: 2px solid #3e2723 !important;
@@ -55,25 +54,16 @@ st.markdown("""
         padding-top: 10px !important;
     }
     .stTabs [data-baseweb="tab"] {
-        height: 50px !important;
-        background-color: #0d0d0d !important;
-        border-radius: 12px 12px 0 0 !important;
-        color: #bbbbbb !important;
-        border: 1px solid #1a1a1a !important;
-        padding: 0 30px !important;
+        height: 50px !important; background-color: #0d0d0d !important;
+        border-radius: 12px 12px 0 0 !important; color: #bbbbbb !important;
+        border: 1px solid #1a1a1a !important; padding: 0 30px !important;
     }
-    .stTabs [aria-selected="true"] {
-        background-color: #3e2723 !important;
-        color: #ffffff !important;
-        border-color: #3e2723 !important;
-    }
+    .stTabs [aria-selected="true"] { background-color: #3e2723 !important; color: #ffffff !important; }
 
-    /* Forms e Inputs */
     input, textarea, [data-baseweb="select"] > div { 
         background-color: #3e2723 !important; border: 1px solid #4b3621 !important; color: #ffffff !important;
     }
 
-    /* Botões Elite */
     .stButton>button {
         background-color: #3e2723 !important; color: #ffffff !important;
         border: 1px solid #4b3621 !important; border-radius: 14px !important;
@@ -81,11 +71,9 @@ st.markdown("""
     }
     .stButton>button:hover { background-color: #4b3621 !important; border-color: #ffffff !important; }
 
-    /* Cards e Mensagens */
     .elite-card { background: #0d0d0d; border: 1px solid #3e2723; border-radius: 20px; padding: 25px; margin-bottom: 15px; }
     .instruction-box { background: linear-gradient(145deg, #1a0f0d, #000000); border-left: 5px solid #3e2723; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
     
-    /* CHAT DESIGN */
     .chat-container { display: flex; flex-direction: column; gap: 10px; padding: 10px; }
     .bubble { padding: 12px; border-radius: 15px; max-width: 80%; line-height: 1.4; }
     .sent { background-color: #3e2723; align-self: flex-end; color: white; border-bottom-right-radius: 2px; }
@@ -93,10 +81,10 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- GERADOR DE RELATÓRIO PDF (ESTÉTICA TECHNOBOLT) ---
+# --- GERADOR DE RELATÓRIO PDF ---
 class TechnoboltPDF(FPDF):
     def header(self):
-        self.set_fill_color(62, 39, 35) # Marrom Technobolt (#3e2723)
+        self.set_fill_color(62, 39, 35) # Marrom Technobolt
         self.rect(0, 0, 210, 45, 'F')
         self.set_y(15)
         self.set_font('Helvetica', 'B', 28)
@@ -105,12 +93,6 @@ class TechnoboltPDF(FPDF):
         self.set_font('Helvetica', 'I', 11)
         self.cell(0, 10, 'Health Analytics & Veterinary AI Report', ln=True, align='C')
         self.ln(20)
-
-    def footer(self):
-        self.set_y(-15)
-        self.set_font('Helvetica', 'I', 8)
-        self.set_text_color(150, 150, 150)
-        self.cell(0, 10, f'TechnoBolt Pets Hub - Pagina {self.page_no()}', align='C')
 
 def sanitize_pdf_text(text):
     if not text: return ""
@@ -141,7 +123,6 @@ def create_pdf_report(pet_name, especie, modo, sintomas, laudo):
 def call_ia(prompt, img=None):
     chaves = [st.secrets.get(f"GEMINI_CHAVE_{i}") for i in range(1, 8)]
     chaves = [k for k in chaves if k]
-    if not chaves: return "Erro: Chaves de API ausentes."
     motores = ["models/gemini-2.0-flash", "models/gemini-flash-latest"]
     genai.configure(api_key=random.choice(chaves))
     for motor in motores:
@@ -194,7 +175,7 @@ with st.sidebar:
         
         with st.expander("➕ Adicionar Pet"):
             p_n = st.text_input("Nome")
-            p_e = st.text_input("Espécie (Qualquer animal)")
+            p_e = st.text_input("Espécie")
             if st.button("Salvar Pet"):
                 db.pets.insert_one({"owner_id": user_data['usuario'], "nome": p_n, "especie": p_e})
                 st.rerun()
@@ -230,7 +211,7 @@ elif user_data['tipo'] == "Cuidador":
             new_v = st.number_input("Valor da Diária (R$)", value=user_data.get('valores', 0))
             if st.form_submit_button("ATUALIZAR DADOS"):
                 db.usuarios.update_one({"usuario": user_data['usuario']}, {"$set": {"nome": new_n, "endereco": new_a, "perfil_cuidado": new_p, "valores": new_v}})
-                st.success("Perfil Atualizado!")
+                st.rerun()
 
     with t_agend:
         pedidos = list(db.agendamentos.find({"cuidador_id": user_data['usuario'], "status": "Pendente"}))
@@ -272,10 +253,10 @@ elif user_data['tipo'] == "Tutor":
             st.image(img, width=400)
             res = call_ia(f"Especialista: Analise este {cur_pet['especie'] if cur_pet else 'Pet'}. Escore corporal e fezes.", img=img)
             st.markdown(f"<div class='elite-card'>{res}</div>", unsafe_allow_html=True)
-            pdf_b = create_pdf_report(cur_pet['nome'] if cur_pet else "Pet", "Agnóstico", "Geral", "N/A", res)
+            pdf_b = create_pdf_report(cur_pet['nome'] if cur_pet else "Pet", cur_pet['especie'] if cur_pet else "Agnóstico", "Geral", "N/A", res)
             st.download_button("📥 BAIXAR PDF TECHNOBOLT", pdf_b, file_name="laudo.pdf", mime="application/pdf")
             
-            # DIAGRAMA DE REFERÊNCIA
+            st.markdown("### 📊 Guia de Referência Clínica")
             
 
 [Image of a Body Condition Score chart for dogs and cats]
@@ -295,7 +276,7 @@ elif user_data['tipo'] == "Tutor":
                 
                 c1, c2, c3 = st.columns(3)
                 with c1:
-                    with st.expander("💬 Enviar Mensagem"):
+                    with st.expander("💬 Chat & Mensagem"):
                         msg_t = st.text_area("Texto", key=f"txt_{c['usuario']}")
                         if st.button("Enviar", key=f"send_{c['usuario']}"):
                             db.mensagens.insert_one({"sender_id": user_data['usuario'], "receiver_id": c['usuario'], "texto": msg_t, "dt": datetime.now(), "sender_addr": user_data.get('endereco')})
