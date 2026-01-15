@@ -36,13 +36,13 @@ def iniciar_conexao():
 
 db = iniciar_conexao()
 
-# --- DESIGN SYSTEM: OBSIDIAN & DEEP COCOA (VISIBILIDADE MÁXIMA) ---
+# --- DESIGN SYSTEM: OBSIDIAN & DEEP COCOA (REFINAMENTO SÊNIOR) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
     
-    /* Reset Global */
-    [data-testid="stSidebar"], .stApp, [data-testid="stHeader"], [data-testid="stSidebarContent"] { 
+    /* Override Global - Obsidian Theme */
+    [data-testid="stSidebar"], .stApp, [data-testid="stHeader"], [data-testid="stSidebarContent"], .main { 
         background-color: #000000 !important; color: #ffffff !important; 
     }
     
@@ -64,22 +64,22 @@ st.markdown("""
         background-color: #3e2723 !important; color: #ffffff !important; border-color: #3e2723 !important;
     }
 
-    /* ELIMINAÇÃO DE FUNDOS BRANCOS EM FORMS E BOTÕES */
-    div[data-testid="stForm"], div.stForm {
+    /* FIX: ELIMINAÇÃO DE FUNDOS BRANCOS EM FORMS E BOTÕES INTERNOS */
+    [data-testid="stForm"], .stForm, div[role="presentation"], .st-emotion-cache-12w0qpk {
         background-color: #0d0d0d !important;
         border: 1px solid #3e2723 !important;
-        padding: 20px !important;
         border-radius: 15px !important;
     }
     
-    input, textarea, [data-baseweb="select"] > div, div[data-baseweb="input"] { 
+    /* Corrigindo inputs brancos dentro de formulários */
+    input, textarea, [data-baseweb="select"] > div, div[data-baseweb="input"], .stNumberInput input { 
         background-color: #1a1a1a !important; 
         border: 1px solid #4b3621 !important; 
         color: #ffffff !important;
     }
 
-    /* Botões Dinâmicos (Evita fundo branco de sistema) */
-    .stButton>button, button[kind="secondary"], button[kind="primary"] {
+    /* Botões Elite - Prevenindo Reset Branco */
+    .stButton>button, div[data-testid="stForm"] button {
         background-color: #3e2723 !important; 
         color: #ffffff !important;
         border: 1px solid #4b3621 !important; 
@@ -90,11 +90,9 @@ st.markdown("""
     }
     .stButton>button:hover { background-color: #4b3621 !important; border-color: #ffffff !important; }
 
-    /* Cards e Mensagens */
+    /* Cards, Instruções e Chat */
     .elite-card { background: #0d0d0d; border: 1px solid #3e2723; border-radius: 20px; padding: 25px; margin-bottom: 15px; }
     .instruction-box { background: linear-gradient(145deg, #1a0f0d, #000000); border-left: 5px solid #3e2723; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
-    
-    /* CHAT DESIGN */
     .bubble { padding: 12px; border-radius: 15px; max-width: 80%; line-height: 1.4; margin-bottom: 5px; }
     .sent { background-color: #3e2723; align-self: flex-end; color: white; margin-left: auto; }
     .received { background-color: #1a1a1a; align-self: flex-start; color: #bbbbbb; margin-right: auto; }
@@ -104,7 +102,7 @@ st.markdown("""
 # --- GERADOR DE RELATÓRIO PDF (ESTÉTICA TECHNOBOLT) ---
 class TechnoboltPDF(FPDF):
     def header(self):
-        self.set_fill_color(62, 39, 35) 
+        self.set_fill_color(62, 39, 35) # #3e2723
         self.rect(0, 0, 210, 45, 'F')
         self.set_y(15)
         self.set_font('Helvetica', 'B', 28)
@@ -214,42 +212,43 @@ if user_data['tipo'] == "Admin":
     t_home, t_edit, t_audit_ag, t_audit_ch = st.tabs(["🏠 Instruções", "⚙️ Gestão de Usuários", "📅 Auditoria de Agendas", "💬 Auditoria de Chats"])
     
     with t_home:
-        st.markdown("""<div class='instruction-box'><b>Centro de Comando Admin:</b><br>
-        1. <b>Gestão de Usuários:</b> Edite permissões, senhas e dados mestre.<br>
-        2. <b>Auditoria de Agendas:</b> Visualize todos os pedidos de cuidado do ecossistema.<br>
-        3. <b>Auditoria de Chats:</b> Monitore as interações entre usuários para garantir a segurança.</div>""", unsafe_allow_html=True)
+        st.markdown("""<div class='instruction-box'><b>Governança Admin Technobolt:</b><br>
+        - <b>Gestão:</b> Edição direta da base de usuários.<br>
+        - <b>Agendas:</b> Monitoramento de todos os pedidos de serviço.<br>
+        - <b>Chats:</b> Auditoria completa de logs de mensagens entre usuários.</div>""", unsafe_allow_html=True)
     
     with t_edit:
         st.subheader("⚙️ Edição Master de Usuários")
-        df_users = pd.DataFrame(list(db.usuarios.find()))
-        new_df = st.data_editor(df_users, use_container_width=True)
-        if st.button("SALVAR ALTERAÇÕES GLOBAIS"):
-            for index, row in new_df.iterrows():
-                db.usuarios.replace_one({"_id": row["_id"]}, row.to_dict())
-            st.success("Database atualizada!")
+        usuarios_lista = list(db.usuarios.find())
+        if usuarios_lista:
+            df_users = pd.DataFrame(usuarios_lista)
+            new_df = st.data_editor(df_users, use_container_width=True)
+            if st.button("SALVAR ALTERAÇÕES GLOBAIS"):
+                for index, row in new_df.iterrows():
+                    db.usuarios.replace_one({"_id": row["_id"]}, row.to_dict())
+                st.success("Database atualizada!")
+        else: st.info("Nenhum usuário cadastrado.")
 
     with t_audit_ag:
-        st.subheader("📅 Todos os Agendamentos do Hub")
-        all_agendas = pd.DataFrame(list(db.agendamentos.find()))
-        if not all_agendas.empty:
-            st.dataframe(all_agendas, use_container_width=True)
-        else:
-            st.info("Nenhum agendamento registrado.")
+        st.subheader("📅 Relatório Global de Agendamentos")
+        all_agendas = list(db.agendamentos.find())
+        if all_agendas:
+            st.dataframe(pd.DataFrame(all_agendas), use_container_width=True)
+        else: st.info("Nenhum agendamento registrado no sistema.")
 
     with t_audit_ch:
-        st.subheader("💬 Central de Monitoramento de Chats")
-        all_chats = pd.DataFrame(list(db.mensagens.find()))
-        if not all_chats.empty:
-            st.dataframe(all_chats.sort_values(by="dt", ascending=False), use_container_width=True)
-        else:
-            st.info("Nenhuma conversa registrada.")
+        st.subheader("💬 Logs de Conversas (Auditoria)")
+        all_chats = list(db.mensagens.find())
+        if all_chats:
+            st.dataframe(pd.DataFrame(all_chats).sort_values(by="dt", ascending=False), use_container_width=True)
+        else: st.info("Nenhuma conversa registrada ainda.")
 
 # 2. CUIDADOR MASTER
 elif user_data['tipo'] == "Cuidador":
     t_home, t_edit, t_agend, t_chat = st.tabs(["🏠 Instruções", "👤 Meus Dados", "📅 Agendamentos", "💬 Mensagens"])
     
     with t_home:
-        st.markdown("<div class='instruction-box'><b>Olá Cuidador!</b> Configure seu perfil para atrair tutores e gerencie sua agenda.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='instruction-box'><b>Painel do Cuidador:</b> Configure seus dados profissionais e gerencie solicitações de tutores.</div>", unsafe_allow_html=True)
 
     with t_edit:
         st.subheader("Configurar Perfil Profissional")
@@ -292,7 +291,7 @@ elif user_data['tipo'] == "Tutor":
     t_home, t_scan, t_cuid, t_chat = st.tabs(["🏠 Instruções", "🧬 PetScan IA", "🤝 Cuidadores", "💬 Chats"])
     
     with t_home:
-        st.markdown("<div class='instruction-box'><b>Olá Tutor!</b> Use o PetScan para diagnósticos e contrate cuidadores qualificados.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='instruction-box'><b>Painel do Tutor:</b> Realize análises biométricas e contrate os melhores cuidadores para seu pet.</div>", unsafe_allow_html=True)
 
     with t_scan:
         st.subheader("🧬 Diagnóstico Biométrico Universal")
@@ -306,9 +305,7 @@ elif user_data['tipo'] == "Tutor":
             st.download_button("📥 BAIXAR PDF TECHNOBOLT", pdf_b, file_name="laudo.pdf", mime="application/pdf")
             
             st.markdown("""### 📊 Guia de Referência Clínica""")
-            st.markdown("""
-                        """)
-
+            
     with t_cuid:
         cuidadores = list(db.usuarios.find({"tipo": "Cuidador"}))
         for c in cuidadores:
