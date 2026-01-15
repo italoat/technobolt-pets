@@ -5,3 +5,4 @@ pandas
 pymongo
 pillow-heif
 streamlit-js-eval
+fpdf2
